@@ -1,0 +1,57 @@
+---- section 1.7 a small test ----
+erl shell
+c(http).
+
+// trying one header
+http:parse_request("GET /index.html HTTP/1.1\r\nfoo 34\r\n\r\nHello").
+// trying two headers
+http:parse_request("GET /index.html HTTP/1.1\r\nfoo\r\n34\r\n\r\nHello").
+
+To acces it on another machine
+http://192.168.1.129:8080 -> http://ip
+
+---- Running server -----
+c(http).
+c(rudy).
+c(server).
+
+// for single process
+server:start(PORT).
+// for multiple processes
+server:start_pool(PORT,N).
+
+---- Testing requests on server -----
+c(test).
+// single process
+test:bench("localhost", 8080).
+// for multiple processes
+test:bench_parallel("localhost", 8080,10,8).
+
+---- to kill server ----
+
+stop() ->
+rudy ! stop
+
+In Listen function we can receive the kill signal and then close our connection
+
+---- Disucss with TA or classmates -----
+Error when running parallel test requests
+
+Error in process <0.98.0> with exit value:
+{{badmatch,{error,econnreset}},
+[{test,request,2,[{file,"test.erl"},{line,51}]},
+{test,run,3,[{file,"test.erl"},{line,45}]},
+{test,test_request,4,[{file,"test.erl"},{line,28}]}]}
+
+
+// for report 
+This {{badmatch,{error,econnreset}} error is resolved.
+econnreset - Connection reset by the peer which means the result is sending RST Packet.
+The connection is reset because the backlog value is default to 5 and the backlog value
+defines the maximum length that the queue of pending connections can grow to. So when we 
+make parallel requests from the bench file the rudy server cannot keep up with the connections
+from the request because of the backlog value which results in sending RST Packet and we 
+get the error {{badmatch,{error,econnreset}}. To resolve pass backlog value 
+(equal to the number of parallel requests you want to handle) to Opt array in gen_tcp:Listen
+
+http://erlang.org/pipermail/erlang-questions/2015-February/083405.html
