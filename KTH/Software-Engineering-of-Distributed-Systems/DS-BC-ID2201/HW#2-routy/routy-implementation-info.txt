@@ -1,0 +1,632 @@
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+What is Link State Routing?
+Some info to understand the link state routing.
+
+--------------------------------------------------------------------------------------------------
+-> Why Link State Routing and Distance Vector Routing are used?
+Because with these techniques the Routers can construct the
+the routing tables for themselves and regularly update those
+tables.
+
+
+Link -> the edge of connecting nodes,
+State -> Up and Down state of the link
+
+Suppose we have 6 routers from R1 to R6 connected.
+
+-> Now How Link State Routing works?
+
+First Step is the construction of link state table of a router R1 with its neighbors
+by sending a HELLO message. The link state table has distance from each node, sequence
+number (32 bits) and time to live
+
+After this Flooding occurs which means each router will now send its link state table to each
+router in the network. This whole information will be stored by each router in its database
+
+Single Source Shortest Algorithm -> Dijkstra's Algorithm will now come into part
+
+Each Router will now construct its routing table using the Dijkstra Algorithm
+--------------------------------------------------------------------------------------------------
+
+Link State Routing Protocol in Context of Open Shortest Path First 
+
+1)The Link State Protocols needs to form neighbors.
+2)A router can form adjacency/neighborship with routers that are not directly connected.
+3)After neighbors are formed now each node (router) have to advertise some information about itself.
+4)It is called Link State Advertisement or LSA in short.
+5)Inside LSA have information about 
+  - Router information
+  - Which Connected Links
+  - State of Links
+6)Each router will receive LSA from every other router in the network
+7)So each router will have information about every other router and it will be stored in each
+router database known as Link State Database.
+8)Now each router will run alogorithm on the database data to create routes to destination
+9)Once these routes are created it will be placed in the routing table.
+
+How neighbors are discovered?
+A router running OSPF will send hello message and any routers that receive it who are also running
+OSPF will send response. After that they compare their OSPF configurations to see if they should
+become neighbors. When they become neighbors only then they can share the LSAs. This is also known
+as Flooding. Each router ends with same exact information
+
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+Some List Functions used in Routy Implementation
+
+https://titanwolf.org/Network/Articles/Article?AID=1f59e3fb-66c3-448a-abf8-e39e13abc5c2#gsc.tab=0
+
+https://erlang.org/doc/man/lists.html#keyfind-3
+
+1) keyfind(Key, N, TupleList) -> Tuple | false
+  Types
+  Key = term()
+  N = integer() >= 1
+  1..tuple_size(Tuple)
+  TupleList = [Tuple]
+  Tuple = tuple()
+
+  Searches the list of tuples TupleList for a tuple whose Nth element compares equal to Key. 
+  Returns Tuple if such a tuple is found, otherwise false.
+
+  Example
+  A = [{X, 1} || X <- lists:seq(1,5)].
+  lists:keyfind({3,1}, 1, A).
+  lists:keyfind(3, 1, A).
+
+  Find a Tuple in TupleList, if found, return, if not found, return false.
+  The Tuple must satisfy that the Nth element is the same as the key.
+  Example:
+  L = [{name, "hello"}, {name, "world"}].
+  lists:keyfind(name, 2, L).
+  lists:keyfind(name, 1, L).
+
+2) keydelete(Key, N, TupleList1) -> TupleList2
+  Types
+  Key = term()
+  N = integer() >= 1
+  1..tuple_size(Tuple)
+  TupleList1 = TupleList2 = [Tuple]
+  Tuple = tuple()
+  Returns a copy of TupleList1 where the first occurrence of a tuple whose Nth element compares
+  equal to Key is deleted, if there is such a tuple.
+
+  This function is suitable for processing the case where the elements in the list are tuples.
+  Delete the Nth element of the TupleList1 element that is consistent with the Key, only delete
+  the first one that is the same, the latter one is not deleted.
+  Example:
+  List = [{name, "zhangjing"}, {sex, "male"}, {name, "zhangsan"}, {sex, "male"}],
+  lists: keydelete ("male", 2 , List)
+  Results:
+  [{name, "zhangjing"}, {name, "zhangsan"}, {sex, "male"}]
+
+3) keyreplace(Key, N, TupleList1, NewTuple) -> TupleList2
+  Types
+  Key = term()
+  N = integer() >= 1
+  1..tuple_size(Tuple)
+  TupleList1 = TupleList2 = [Tuple]
+  NewTuple = Tuple
+  Tuple = tuple()
+  Returns a copy of TupleList1 where the first occurrence of a T tuple whose Nth element compares 
+  equal to Key is replaced with NewTuple, if there is such a tuple T.
+
+4) keysort(N, TupleList1) -> TupleList2
+  Types
+  N = integer() >= 1
+  1..tuple_size(Tuple)
+  TupleList1 = TupleList2 = [Tuple]
+  Tuple = tuple()
+  Returns a list containing the sorted elements of list TupleList1. Sorting is performed on the Nth 
+  element of the tuples. The sort is stable.  
+
+5) map(Fun, List1) -> List2
+  Types
+  Fun = fun((A) -> B)
+  List1 = [A]
+  List2 = [B]
+  A = B = term()
+  Takes a function from As to Bs, and a list of As and produces a list of Bs by applying the
+  function to every element in the list. This function is used to obtain the return values. 
+  The evaluation order depends on the implementation.
+
+  map will execute each element in List1 in Fun, and then return an element, and finally return
+  these elements to form a list, return to List2
+  Example:
+  lists: map (fun (X )-> [X, X] end, [a, b, c]).
+  Results: [[a, a], [b, b], [c, c]]
+
+6) foldl(Fun, Acc0, List) -> Acc1
+  Types
+  Fun = fun((Elem :: T, AccIn) -> AccOut)
+  Acc0 = Acc1 = AccIn = AccOut = term()
+  List = [T]
+  T = term() 
+  Calls Fun(Elem, AccIn) on successive elements A of List, starting with AccIn == Acc0. 
+  Fun/2 must return a new accumulator, which is passed to the next call. The function 
+  returns the final value of the accumulator. Acc0 is returned if the list is empty.
+
+  Example:
+  lists:foldl(fun(X, Sum) -> X + Sum end, 0, [1,2,3,4,5]).
+  15
+  lists:foldl(fun(X, Prod) -> X * Prod end, 1, [1,2,3,4,5]).
+  120
+
+  Fun This function has two parameters
+  The first parameter is the element in the List, and the second parameter is the return 
+  value after the Fun function is executed. This parameter is executed for the first time 
+  Time is an example of Acc0 : Summing [1,2,3,4,5]
+  lists: foldl (fun (X, Sum)-> X + Sum end, 0, [1,2,3,4,5]) .
+  Result: 15
+  execution process: First, when Fun is executed for the first time, the value of X takes 
+  the first element of List List, Sum takes 0, and when Fun is executed for the second time, 
+  the value of X takes the second list. Element 2, Sum takes Fun's first return value in turn,
+  until each element in the list is executed, and finally foldl returns the last result.
+
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+Section 2 Dijkstra Implementation
+
+The Dijkstra algorithm will compute a routing table. 
+The table is represented by a list with one entry per node
+Routing Table looks like -> [{berlin,madrid},{rome,paris},{madrid,madrid},{paris,paris}]
+
+Note - The input to algorithm is a map and list of gateways to which we have direct access
+
+------------------------------------------------------------------------------------------------
+2.1 A sorted list 
+Entry in sorted list looks like
+{berlin, 2, paris} -> {Node, Length, Gateway}
+
+The list is sorted on the basis of length so output should be like
+[{stockholm, 1, lund} , {berlin, 2, paris} , ... ]
+We should be able to update the list to give a node a new length and a new 
+gateway but when we do an update it is important that we update an existing 
+entry and that we actually have an entry in the list to update.
+To implement this we first implement entry and replace methods
+------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------
+entry(Node,Sorted) -> returns the length of shortest path to the node or 0 if not found
+
+entry(Node,Sorted) ->
+  case of lists:keyfind(Node,1,Sorted) 
+  we are looking to find node name at position one in the sorted list
+  if node is found it returns result = {Node,Length,Gateway}
+  if node is not found it returns false
+
+  {_Node,Length,_Gateway} ->
+    Length;
+  because we need to return only length
+  false ->
+    0
+  end.
+------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------
+replace(Node,N,Gateway,Sorted) -> replaces the entry for Node in Sorted with a new entry having a new length N and Gateway
+
+replace(Node,N,Gateway,Sorted) ->
+  first we will look for node entry in the list
+  case entry(Node,Sorted) ->
+    0 ->
+      Sorted;
+    _length ->
+      unsorted = lists:keyreplace(Node,1,Sorted,{Node,N,Gateway})
+
+      now this is unsorted to make it sorted we know we have parameter length
+
+      we will use keysort(key,list);
+
+      lists:keysort(2,unsorted)
+    end.
+------------------------------------------------------------------------------------------------
+
+now comes the update part
+update(Node, N, Gateway, Sorted) -> update the list Sorted given the information that Node can be reached in N 
+hops using Gateway. If no entry is found then no new entry is added. Only if we have a better (shorter) path 
+should we replace the existing entry.
+
+update(Node, N, Gateway, Sorted) ->
+  case N < entry(Node,Sorted) ->
+    true ->
+      replace(Node,N,Gateway,Sorted);
+    false ->
+      Sorted
+  end.
+
+------------------------------------------------------------------------------------------------
+The iteration -> The heart of algorithm
+Inputs -> Sorted list of Entries, A Map, and a Table 
+
+Sorted list of Entries -> [{paris, 0, paris}, {berlin, 1, hamburg}]
+A Map -> [{paris, [berlin]}]
+A Table -> [] 
+
+Consider these case while implementing
+• If there are no more entries in the sorted list then we are done and the given routing table is complete.
+• If the first entry is a dummy entry with an infinite path to a city we know that the rest of the sorted list is also
+ of infinite length and the given routing table is complete.
+• Otherwise, take the first entry in the sorted list, find the nodes in the map reachable from this entry and for each
+ of these nodes update the Sorted list. The entry that you took from the sorted list is added to the routing table.
+
+So what is happening here.
+
+if entry says the berlin can be reached in 3 hops through paris = [{berlin,3,paris}] -> sorted list
+and the maps says berlin is directly linked to copenhagon = [{berlin,[copenhagon]}] so it means 
+copenhagon can be reached in 4 hops through paris but we might already have a entry for copenhagon
+using only 3 hops over amsterdam = [{berlin,3,paris},{copenhagon,3,amsterdam}] and then nothing is
+done but if is 5 hops = [{berlin,3,paris},{copenhagon,5,amsterdam}] we then found a short way to
+copenhagon via paris and we update the sorted list = [{berlin,3,paris},{copenhagon,4,paris}].
+
+If we have an entry for copenhagen with less than three hops = [{copenhagon,2,amsterdam},{berlin,3,paris}]
+this entry has already been processes and removed from the list. This explains why we do not want to add 
+another entry for copenhagen.
+
+Note, since our network is connected by directional links it could actually be the case that some nodes 
+in our map are not reachable at all. If ulanbator has a link to beijing but there is no link from beijing
+to ulanbator then the world will have ulanbator in the map. If all cites in the map are chosen to be part 
+of the original sorted list that we try to iterate over we will in the end find an entry:
+{ulanbator, inf, unknown} as the first element in the list. If we have this situation we can conclude that 
+the routing table we have is complete and contains all reachable cities.
+
+This should be enough to get going on with implementation of iterate(Sorted,Map,Table).
+
+Again placing Inputs
+Sorted list of Entries -> [{paris, 0, paris}, {berlin, 1, hamburg}]
+A Map -> [{paris, [berlin]}]
+A Table -> [] 
+
+iterate(Sorted,Map,Table) ->
+  (handling first case)
+  case Sorted of -> 
+    [] ->
+      Table;
+  _ ->
+    [{Node,LengthToReach,Gateway} | RestOfEntries] = Sorted,
+    (handling second case)
+    case LengthToReach == inf of ->
+      true ->
+        Sorted;
+      false ->
+    (handling third case)
+      ReachableList = map:reachable(Node,Map) => this will give us directly connected cities for the 
+      node like [{berlin,[london,paris]}] will return [london,paris]
+      NewSortedList = lists:foldl(
+        fun(ReachableListCurrentNode,ResOfEntriesAccumulator) ->
+          update(ReachableListCurrentNode,LengthToReach+1,Gateway,ResOfEntriesAccumulator)
+        end,
+        RestOfEntries,
+        ReachableList
+      )
+      iterate(NewSortedList,Map,[{Node,Gateway}|Table])
+    end;
+  end.
+------------------------------------------------------------------------------------------------
+The Table function
+table/2
+table(Gateways,Map) -> Gateways = [paris, madrid] , Map = [{madrid,[berlin]}, {paris, [rome,madrid]}]
+
+the table function will produce a routing table with one entry per node in the map 
+like this => [{berlin,madrid},{rome,paris},{madrid,madrid},{paris,paris}]
+
+How to implement this??
+
+Document says "List the nodes of the map and construct a initial sorted list."
+so we know we have all_nodes functionality in The Map which list all nodes in a map.
+after getting the all node we have to map over all these nodes and construct a 
+sorted list with initial dummy value for length of inf and gateway as unknown
+
+After this document says "The entries of the gateways should have length zero 
+and gateway set to itself." so for this we will use foldl to get items from 
+gateways and add it to the dummmyList.
+
+At the end step is to call iterate with the final List, Map and empty Table
+
+table(Gateways,Map) ->
+  ListofAllNodes = map:all_nodes(Map),
+  dummyList = lists:map(
+    fun(Node) ->
+      {Node,inf,unknown} -> this gives sorted list = [{berlin, inf, unknown},{paris, inf, unknown},{london, inf, unknown}, ...]
+    end,
+    ListofAllNodes
+  ),
+  ListWithGateways = lists:foldl(
+    fun(CurrentGatewayNode,Accumulator) ->
+      update(CurrentGatewayNode,0,CurrentGatewayNode,Accumulator) -> this will append gateways as [{paris,0,paris},{...}] to sorted list
+    end,
+    dummyList,
+    Gateways
+  )
+  iterate(ListWithGateways,Map,[])
+------------------------------------------------------------------------------------------------
+The Route function 
+route/2
+route(Node,Table) -> search the routing table and return the gateway suitable to route messages 
+to a node. If a gateway is found we should return {ok, Gateway} otherwise we return notfound.
+
+so how to do this?
+we have table in the form of = [{berlin,madrid},{rome,paris},{madrid,madrid},{paris,paris}]
+where one entry per node is present as key and its value is gateway so we can find the gateway
+using keyfind
+
+route(Node,Table) ->
+  case lists:keyfind(Node,1,Table) of
+    {_Node,Gateway} ->
+      {ok,Gateway};
+    false ->
+      notfound
+  end.
+------------------------------------------------------------------------------------------------
+Dijkstra Ends here 
+------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------
+The Interface
+A router will need to keep track of interfaces. A interface is described by the symbolic name 
+(london), a process reference and a process identifier.
+Interface = [{Name,Ref,Pid}]
+
+Now will implement some simple procedures for Interface
+
+new() -> [].
+
+add(Name,Ref,Pid,Intf) ->  lists:append(Intf,[{Name,Ref,Pid}]) or [{Name,Ref,Pid} | Intf].
+
+remove(Name,Intf) -> lists:keydelete(Name,1,Intf).
+
+lookup(Name,Intf) -> 
+  case lists:keyfind(Name,1,Intf) of
+    {_Name,_Ref,Pid} ->
+      {ok,Pid};
+    false ->
+      notfound
+  end.
+
+ref(Name,Intf) and name(Ref,Intf) are same as lookup. 
+
+list(Intf) ->
+  AllIntfNames = lists:map(
+    fun(CurrentIntf) ->
+      {Name,_Ref,_Pid} = CurrentIntf,
+      Name
+    end,
+    Intf
+  )
+  AllIntfNames
+
+broadcast(Message, Intf) ->
+  % send the message to all interface processes.
+  case Intf of
+    [{_Name,_Ref,Pid} | Rest] ->
+      Pid ! Message;
+    [] ->
+      ok
+  end.
+------------------------------------------------------------------------------------------------
+Interface ends here
+------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------
+The History
+we will tag each constructed message with a per router increasing message number. If we know that 
+we have seen message 15 from london then we know that messages from london with a lower number are 
+old and can be thrown away. This strategy not only avoids circular loops but also prevents old 
+messages from being delayed and later be allowed to change our view of the network.
+
+Implement a data structure called history that keeps track of what messages that we have seen
+
+new(Name) -> Return a new history, where messages from Name will always be seen as old.
+  [{Name,inf}].
+
+update(Node,N,History) ->
+  case lists:keyfind(Node,1,History) of
+    false -> 
+      {new, [new(Node)|History])};
+    {_Name,Number} ->
+      case N > Number of
+        true ->
+          {new,lists:keyreplace(Node,1,History,{Node,N})};
+        false ->
+          old
+      end
+  end. 
+------------------------------------------------------------------------------------------------
+History ends here
+------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------
+The Router
+The router should be able to, not only route messages through a network of connected nodes but also, 
+maintain view of the network and construct optimal routing tables. Each routing process will have a state:
+• a symbolic name such as london
+• a counter
+• a history of received messages 
+• a set of interfaces
+• a routing table
+• a map of the network
+
+When a new router process is created it will set all its parameters to initial empty values. 
+We will also register the router process under a uniqe name (unique for the erlang machine it 
+is running on, for example r1, r2, etc).
+
+To route a message to a node
+router -> consult routing table to find best gateway -> find pid of gateway given list of interfaces
+
+the hard part is to maintain a consistent view of the networks as interfaces are added and removed.
+The algorithm of a links-state protocol is as follows:
+• determine which nodes that you are connected to
+• tell all neighbors in a link-state message
+• if you receive a link-state message that you have not seen before pass it along to your neighbors
+
+A node will thus collect link-state messages from all other routers in the network. 
+The link-state messages are exactly what we need to build a map. Since we also know 
+which nodes we can reach directly, our gateways, we can use Dijkstra’s algorithm to 
+generate a routing table.
+
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+Commands for Testing
+
+192.168.1.129
+erl -name sweden@192.168.1.129 -setcookie routy -connect_all false
+
+routy:start(r1, stockholm).
+routy:start(r2, lund).
+
+r2 ! {add, stockholm, {r1, 'sweden@192.168.1.129'}}.
+r1 ! {add, lund, {r2, 'sweden@192.168.1.129'}}.
+
+r1 ! broadcast.
+r2 ! broadcast.
+
+r1 ! update.
+r2 ! update.
+
+r1 ! status.
+r2 ! status.
+
+r1 ! {send, lund, 'hello'}.
+r2 ! {send, stockholm, 'hello'}.
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+How dijkstra:table([paris, madrid], [{madrid,[berlin]}, {paris, [rome,madrid]}]). works??
+
+First Step List all Nodes
+List of All Nodes : [berlin,madrid,paris,rome]
+
+Second Step Dummy List
+DummyList : [{berlin,inf,unknown},
+             {madrid,inf,unknown},
+             {paris,inf,unknown},
+             {rome,inf,unknown}]
+
+Third Step The entries of the gateways should have length zero and gateway set to itself.
+All Nodes List : [{paris,0,paris},
+                  {madrid,0,madrid},
+                  {berlin,inf,unknown},
+                  {rome,inf,unknown}]
+                
+Now Iterate comes in
+
+iterate(
+  [
+    {paris,0,paris},
+    {madrid,0,madrid},
+    {berlin,inf,unknown},
+    {rome,inf,unknown}
+  ],
+  [
+    {madrid,[berlin]}, 
+    {paris, [rome,madrid]}
+  ],
+  []
+)
+
+Old Sorted List :
+[{paris,0,paris},
+{madrid,0,madrid},
+{berlin,inf,unknown},
+{rome,inf,unknown}]
+
+Reachable List From paris : [rome,madrid]
+
+Old Sorted List : 
+[{paris,0,paris},
+{madrid,0,madrid},
+{berlin,inf,unknown},
+{rome,inf,unknown}]
+
+New Sorted List : [{madrid,0,madrid},{rome,1,paris},{berlin,inf,unknown}]
+
+New Table : [{paris,paris}]
+
+Reachbale List From madrid : [berlin]
+
+Old Sorted List : [{madrid,0,madrid},{rome,1,paris},{berlin,inf,unknown}]
+
+New Sorted List : [{rome,1,paris},{berlin,1,madrid}]
+
+New Table : [{madrid,madrid},{paris,paris}]
+
+Reachable List from rome : [] (because rome is not a node)
+
+Old Sorted List : [{rome,1,paris},{berlin,1,madrid}]
+
+New Sorted List : [{berlin,1,madrid}]
+
+New Table : [{rome,paris},{madrid,madrid},{paris,paris}]
+
+Reachable List from berlin : [] (because berlin is not a node)
+
+Old Sorted List : [{berlin,1,madrid}]
+
+New Sorted List : []
+
+New Table : [{berlin,madrid},{rome,paris},{madrid,madrid},{paris,paris}]
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------
+Commands for Testing on Different Shells
+
+192.168.1.129
+
+-> start shells
+erl -name sweden@192.168.1.129 -setcookie routy -connect_all false
+erl -name germany@192.168.1.129 -setcookie routy -connect_all false
+
+-> start router processes in sweden
+routy:start(r1, stockholm).
+routy:start(r2, lund).
+
+-> start router processes in germany
+routy:start(r3, berlin).
+routy:start(r4, munich).
+
+-> add links between stockholm and lund
+r2 ! {add, stockholm, {r1, 'sweden@192.168.1.129'}}.
+r1 ! {add, lund, {r2, 'sweden@192.168.1.129'}}.
+
+-> add links between berlin and lund
+r2 ! {add, berlin, {r3, 'germany@192.168.1.129'}}.
+r3 ! {add, lund, {r2, 'sweden@192.168.1.129'}}.
+
+-> add links between berlin and munich
+r4 ! {add, berlin, {r3, 'germany@192.168.1.129'}}.
+r3 ! {add, munich, {r4, 'germany@192.168.1.129'}}.
+
+-> now see status of each
+r1 ! status
+r2 ! status
+r3 ! status
+r4 ! status
+
+-> now trigger link-state messages now
+r1 ! broadcast.
+r2 ! broadcast.
+r3 ! broadcast
+r4 ! broadcast
+
+-> now update routing table for each 
+r1 ! update.
+r2 ! update.
+r3 ! update.
+r4 ! update.
+
+-> Last part to send messsage now 
+r4 ! {send, stockholm, 'hello'}.
+------------------------------------------------------------------------------------------------
+
+
+THE END
+Regards Abdullah
+
