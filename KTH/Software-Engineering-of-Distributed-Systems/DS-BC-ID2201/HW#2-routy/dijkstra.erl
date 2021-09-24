@@ -134,6 +134,7 @@ iterate(Sorted,Map,Table) ->
 % 4) When you have constructed this list you can call iterate with 
 % an empty table
 table(Gateways,Map) ->
+  io:format("The Gateways are : ~p~n", [Gateways]),
   ListOfAllNodes = map:all_nodes(Map), % step 1
   Union = lists:usort(ListOfAllNodes ++ Gateways),
   %io:format("List of All Nodes : ~p~n", [ListOfAllNodes]),
@@ -141,7 +142,7 @@ table(Gateways,Map) ->
   DummyList = lists:map(   % step 2
     fun(Node) ->
       {Node,inf,unknown}
-      % this gives sorted list = [{berlin, inf, unknown},{paris, inf, unknown},{london, inf, unknown}, ...]
+      % this gives sorted list = [{berlin, inf, unknown},{paris, inf, unknown},{london, inf, unknown}, {paris,0,paris}  ...] [paris]
     end,
     Union
   ),

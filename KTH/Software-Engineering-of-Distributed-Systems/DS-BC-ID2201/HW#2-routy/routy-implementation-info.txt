@@ -473,14 +473,14 @@ generate a routing table.
 ------------------------------------------------------------------------------------------------
 Commands for Testing
 
-192.168.1.129
-erl -name sweden@192.168.1.129 -setcookie routy -connect_all false
+130.229.172.253
+erl -name sweden@130.229.172.253 -setcookie routy -connect_all false
 
 routy:start(r1, stockholm).
 routy:start(r2, lund).
 
-r2 ! {add, stockholm, {r1, 'sweden@192.168.1.129'}}.
-r1 ! {add, lund, {r2, 'sweden@192.168.1.129'}}.
+r2 ! {add, stockholm, {r1, 'sweden@130.229.172.253'}}.
+r1 ! {add, lund, {r2, 'sweden@130.229.172.253'}}.
 
 r1 ! broadcast.
 r2 ! broadcast.
@@ -578,11 +578,11 @@ New Table : [{berlin,madrid},{rome,paris},{madrid,madrid},{paris,paris}]
 ------------------------------------------------------------------------------------------------
 Commands for Testing on Different Shells
 
-192.168.1.129
+130.229.172.253
 
 -> start shells
-erl -name sweden@192.168.1.129 -setcookie routy -connect_all false
-erl -name germany@192.168.1.129 -setcookie routy -connect_all false
+erl -name sweden@130.229.172.253 -setcookie routy -connect_all false
+erl -name germany@130.229.172.253 -setcookie routy -connect_all false
 
 -> start router processes in sweden
 routy:start(r1, stockholm).
@@ -593,16 +593,23 @@ routy:start(r3, berlin).
 routy:start(r4, munich).
 
 -> add links between stockholm and lund
-r2 ! {add, stockholm, {r1, 'sweden@192.168.1.129'}}.
-r1 ! {add, lund, {r2, 'sweden@192.168.1.129'}}.
+r2 ! {add, stockholm, {r1, 'turkey@130.229.172.253'}}.
+r1 ! {add, lund, {r2, 'sweden@130.229.172.253'}}.
+
+antalya ! {add, istanbul, {istanbul, 'turkey@130.229.172.253'}}.
+istanbul ! {add, antalya, {antalya, 'turkey@130.229.172.253'}}.
+
+istanbul ! {add, rio, {rio, 'brazil@130.229.190.152'}}.
+
+antalya ! {add, delhi, {delhi, 'india@130.229.147.236'}}.
 
 -> add links between berlin and lund
-r2 ! {add, berlin, {r3, 'germany@192.168.1.129'}}.
-r3 ! {add, lund, {r2, 'sweden@192.168.1.129'}}.
+r2 ! {add, berlin, {r3, 'germany@130.229.172.253'}}.
+r3 ! {add, lund, {r2, 'sweden@130.229.172.253'}}.
 
 -> add links between berlin and munich
-r4 ! {add, berlin, {r3, 'germany@192.168.1.129'}}.
-r3 ! {add, munich, {r4, 'germany@192.168.1.129'}}.
+r4 ! {add, berlin, {r3, 'germany@130.229.172.253'}}.
+r3 ! {add, munich, {r4, 'germany@130.229.172.253'}}.
 
 -> now see status of each
 r1 ! status
@@ -613,8 +620,17 @@ r4 ! status
 -> now trigger link-state messages now
 r1 ! broadcast.
 r2 ! broadcast.
-r3 ! broadcast
-r4 ! broadcast
+r3 ! broadcast.
+r4 ! broadcast.
+
+istanbul ! broadcast.
+antalya ! broadcast.
+
+istanbul ! update.
+antalya ! update.
+
+istanbul ! {send, antalya, "hello from istanbul"}.
+
 
 -> now update routing table for each 
 r1 ! update.
@@ -623,9 +639,12 @@ r3 ! update.
 r4 ! update.
 
 -> Last part to send messsage now 
+r1 ! {send, stockholm, 'hello'}.
 r4 ! {send, stockholm, 'hello'}.
 ------------------------------------------------------------------------------------------------
 
+to clear erl shell
+io:format(os:cmd(clear)).
 
 THE END
 Regards Abdullah

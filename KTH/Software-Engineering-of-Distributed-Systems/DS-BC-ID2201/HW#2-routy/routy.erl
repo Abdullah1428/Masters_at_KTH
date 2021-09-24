@@ -82,8 +82,8 @@ router(Name, N, History, Interface, Table, Map) ->
 		% 5.4 Routing a message
 		% message has actually arrived to the final destination.
 		{route, Name, From, Message} ->
-      io:format("(~w) node: received message: (~w) from (~w)~n", [Name, Message,From]),
-      router(Name, N, History, Interface, Table, Map);
+    	io:format("(~w) node: received message: (~w) from (~w)~n", [Name, Message,From]),
+    	router(Name, N, History, Interface, Table, Map);
 		% If the message is not ours we should forward it. 
 		% If we find a suitable gateway in the routing table 
 		% we simply forward the message to the gateway. If 
@@ -96,6 +96,7 @@ router(Name, N, History, Interface, Table, Map) ->
 		    {ok, Gateway} ->
 		      case interface:lookup(Gateway, Interface) of
 			      {ok, Pid} ->
+							io:format("Pid is : ~w~n",[Pid]),
 			        Pid ! {route, To, From, Message};
 			      notfound ->
 			        ok
