@@ -1,0 +1,93 @@
+https://titanwolf.org/Network/Articles/Article?AID=4cb59c8c-ef3f-40b0-a0cc-561eb0680f25#gsc.tab=0
+
+-----------------------------------------------------------------------------------------------------------------------
+Clocks and Time
+
+Time is something that we always want to be accurate.
+Clocks are not synchronized due to which timing issues can occur.
+
+Why time important for Distributed Systems?
+
+1) Because we want to measure Time and put timestamps on different events occuring in different processes or computers
+so that we can know the order of processes occured.
+Ordering is necessary in systems like online transactions and events should be timestamped in such systems.
+
+2) Many distributed algorithms use the clocks for which they should be synchronized.
+
+3) Another reason of time importance is maintaining consistency of distributed data where we have timestamps to
+serialize transactions of data. 
+
+and there are many more examples which shows why time is such an important factor in distributed systems.
+
+-----------------------------------------------------------------------------------------------------------------------
+Now what is correct time and who has it??
+
+So for correct time 2 standards are used in world.
+1) Earth's rotation => UT (Universal Time)
+2) One Atomic Clock => UTC
+
+The Earth's rotation with respect to sun is 24hrs and with respect to stars is 23 hrs 56 mins and 4 seconds.
+The rotation is regular and continous.
+
+One Atomic Clock is the electromagnetic radiation of excited state of caesium 133 atom. 
+For time oscillators first pendulum was used but had problems with temparature and humid conditions so quartz
+was introduced next as oscillator but quartz had also problems with time. 
+So in 1967 a new standard for osciallar was defined and it was decided that 1 second = 9 billion 162 million 631 thousand 770 (9162631770) 
+oscillations of caesium 133 atom also known as resonant frequency. 
+
+-----------------------------------------------------------------------------------------------------------------------
+Clock Synchronization
+
+External Sync (Accuracy) -> Each Node in out network is in sync with externakl global source (clock) within a bound.
+
+Internal Sync (Precision) -> Every pair of node are in sync within a bound (sync to eachother).
+
+Both can be combined -> One node takes sync with external clock and then we distribute the time within other nodes in system.
+
+-----------------------------------------------------------------------------------------------------------------------
+Two algorithms for external sync -> Christians algorithm and NTP (Network Time Protocol)
+One algorithm for Internal sync -> Berkeley algorithm
+
+-----------------------------------------------------------------------------------------------------------------------
+But still these all are hardware clock and can still have synchronization so for that logical time is introduced in
+distributed system
+
+From GeeksforGeeks -> Logical Clocks refer to implementing a protocol on all machines within your distributed system, 
+so that the machines are able to maintain consistent ordering of events within some virtual timespan. A logical clock 
+is a mechanism for capturing chronological and causal relationships in a distributed system. Distributed systems may 
+have no physically synchronous global clock, so a logical clock allows global ordering on events from different processes 
+in such systems.
+
+Some points about logical clocks.
+  All events in one process are ordered.
+  The sending occurs first before receiving
+  Events in a distributed system are partially ordered.
+  The order is called happened before.
+
+-----------------------------------------------------------------------------------------------------------------------
+Lamport Logical Clock.
+
+One counter per process and intially set to zero -> Each process has its own Lamport clock.
+Each process increments only its own clock.
+When event is sent (sending a message) counter increments and sent messages are tagged with value of lamport clock.
+When event is received (receiving message) the process set its clock to the greatest of the internat clock and
+the timestamp the came with the message. -> Max(OwnClock,ReceivingClock) -> Max(1,2) = set clock to 2.
+
+From lamport clock we get following point that if an event E1 happened before E2 then timestamp of E1 is less then
+time stamp of E2 => e1 happened before e2 = L(e1) < L(e2) but this is not true for the other way around.
+
+-----------------------------------------------------------------------------------------------------------------------
+To achieve L(e1) < L(e2) = e1 happened before e2 Vector Clocks are introduced.
+
+Vector Clocks
+
+One vector with a counter per process 
+intially set to  <0,...>. In vector each element (basically a lamport clock) of vector belongs to process and each process 
+can only increment its own index.
+
+Sent messaages are tagged with vector.
+At receiving end internal clock vector and receiving clock vector are merged to update the max.
+
+from vector clocks -> V(e1) < V(e2) = e1 happened before e2.
+
+-----------------------------------------------------------------------------------------------------------------------
