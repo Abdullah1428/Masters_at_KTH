@@ -67,6 +67,7 @@ newQueue() ->
 updateHoldBackQueue(From,Time,Msg,HoldBackQueue) ->
   NewEntry = {From,Time,Msg},
   UpdatedQueue = [NewEntry | HoldBackQueue],
+  %io:format("Length of Vector Queue: ~w~n",[length(UpdatedQueue)]),
   lists:keysort(2,UpdatedQueue).
   % List = [{aksel,[{aksel,3},{abdullah,2}],hello},{abdullah,[{aksel,1},{abdullah,2}],hello}]
   % output = [{abdullah,[{aksel,1},{abdullah,2}],hello},{aksel,[{aksel,3},{abdullah,2}],hello}]

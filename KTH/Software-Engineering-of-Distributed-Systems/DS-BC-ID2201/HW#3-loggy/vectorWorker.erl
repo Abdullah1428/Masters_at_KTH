@@ -36,7 +36,7 @@ loop(Name, Log, Peers, Sleep, Jitter, Vector)->
       % first step to merge the two lamport time stamps and increment it by one.
       MergedTime = vectorTime:merge(Time,Vector),
       IncrementTime = vectorTime:inc(Name,MergedTime),
-      Log ! {log, Name, Time, {received, Msg}},
+      Log ! {log, Name, IncrementTime, {received, Msg}},
       loop(Name, Log, Peers, Sleep, Jitter,IncrementTime);
     stop -> 
       ok;

@@ -78,6 +78,7 @@ newQueue() ->
 updateHoldBackQueue(From,Time,Msg,HoldBackQueue) ->
   NewEntry = {From,Time,Msg},
   UpdatedQueue = [NewEntry | HoldBackQueue],
+  %io:format("Length of Lamport Queue: ~w~n",[length(UpdatedQueue)]),
   lists:keysort(2,UpdatedQueue). 
 %---------------------------------------------------------------------------  
 
