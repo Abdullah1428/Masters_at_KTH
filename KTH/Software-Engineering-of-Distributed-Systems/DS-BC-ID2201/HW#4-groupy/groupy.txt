@@ -1,0 +1,1147 @@
+A Group Membership Service that provides atomic multicast
+
+what is atomic multicast -> A communicaton primitive that delivers messages
+to multiple groups of processes according to some total order.
+
+-------------------------------------------------------------------------------------
+The Architecture for Assignment
+-------------------------------------------------------------------------------------
+A group membership service that provides atomic multicast in view synchrony. 
+
+Set of Nodes => One node will be selected as leader
+All nodes that wish to multicast a message will send the message to the leader 
+and the leader will do a basic multicast to all members of the group. If the 
+leader dies a new leader is elected.
+
+A new node that wishes to enter the group will contact any node in the group and request 
+to be join the group. The leader will determine when the node is to be included and deliver 
+a new view to the group.
+
+Each application layer process will have its own group process that it communicates with. 
+The application layer will send multicast messages to the group process and receive all 
+multicasted messages from it. The application layer must also be prepared to decide if a new 
+node should be allowed to enter the group and also decide the initial state of this node.
+
+1.1 View Synchrony
+Each node in the group should be able to multicast messages to the members of the group. 
+The communication is divided into views and messages will be said to be delivered in a view. 
+For all messages in a view we will guarantee the following:
+  • in FIFO order: in the order that they were sent by a node
+  • in total order: all nodes see the same sequence
+  • reliably: if a correct node delivers a message, all correct nodes deliver the message
+
+1.2 The leader
+A node will either play the role of a leader (let’s hope there is only one) or a slave. 
+All slaves will forward messages to the leader and the leader will tag each message with a 
+sequence number and multicast it to all nodes. The leader can also accept a message directly 
+from its own master i.e. the application layer. The application layer is unaware of whether its 
+group process is acting as a leader or a slave.
+
+1.3 A slave
+A slave will receive messages from its application layer process and forward them to the leader. 
+It will also receive messages from the leader and forward them to the application layer. If nodes 
+would not fail this would be the easiest job in the world but since we must be able to act if the 
+leader dies we need to do some bookkeeping. In our first version of the implementation, we will not 
+deal with failures but only with adding new nodes to the system. This is complicated enough to start with.
+
+1.4 The election
+The election procedure is very simple. All slaves have the same list of peers and they all elect the 
+first node in the list as the leader. A slave that detects that it is the first node will of course 
+adopt the role as leader. The leader will have to resend the last message that it received and the 
+slaves will have to monitor the new leader.
+-------------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------------
+How application layer works
+
+application process will create a group process and the application process will be 
+communicating to the process in the group.
+-------------------------------------------------------------------------------------
+
+What is realiable multicast -> GMS3
+
+Slaves keeping a copy of the last message they have seen from the leader.
+Since the leader is sending out the multicast to the slaves in the order they
+appear in the slave list, and as assumed reliable message delivery, then we can
+sure that if any node receieved the message before the leader process crashed, the
+the first node in slave list receieved the message. Since the first node in slave
+list will be next leader in our implementation, it is enough to have it broadcast the
+last message it saw from last leader to all remaining slaves.
+
+Unreliable delivery of messages -> message loss occurs and to solve this problem we need
+to handle the lost messages and print them.
+
+-------------------------------------------------------------------------------------
+Some commands for testing
+
+c(gms1).
+c(gms2).
+c(gms3).
+c(test).
+c(gui).
+c(worker).
+
+taken from test file
+
+W1 = test:more(5, gms1, 1000).
+
+W1 = test:more(5, gms2, 1000). 
+
+W1 = test:more(5, gms3, 1000).
+
+W1 = test:more(3, gms3, 1000).
+
+W1 = test:more(5, gms3_lostmessages, 1000).
+
+W1 = test:more(5, gms4, 1000).
+
+W1 = test:more(2, gms4, 1000).
+
+W1 = test:first(1, gms3, 1000).
+
+test:add(2, gms3, W1, 1000).
+
+test:add(3, gms3, W1, 1000).
+-------------------------------------------------------------------------------------
+
+Output of -> W1 = test:more(5, gms3_lostmessages, 1000).
+
+slave 5: msg {state,#Ref<0.3493135637.175898625.20636>,{0,0,0}} with seq num 12
+leader 1: received {mcast, {state,#Ref<0.3493135637.175898625.20639>,{0,0,0}}} with seq num 14
+slave 2: received {mcast, {state,#Ref<0.3493135637.175898625.20639>,{0,0,0}}} with seq num 12
+slave 3: received {mcast, {state,#Ref<0.3493135637.175898625.20639>,{0,0,0}}} with seq num 12
+slave 4: msg {state,#Ref<0.3493135637.175898625.20636>,{0,0,0}} with seq num 13
+slave 2: msg {state,#Ref<0.3493135637.175898625.20636>,{0,0,0}} with seq num 12
+slave 3: msg {state,#Ref<0.3493135637.175898625.20636>,{0,0,0}} with seq num 12
+slave 2: msg {state,#Ref<0.3493135637.175898625.20636>,{0,0,0}} with seq num 13
+slave 3: msg {state,#Ref<0.3493135637.175898625.20636>,{0,0,0}} with seq num 13
+slave 5: lost msg {state,#Ref<0.3493135637.175898625.20636>,{0,0,0}} with seq num 13
+slave 2: msg {state,#Ref<0.3493135637.175898625.20639>,{0,0,0}} with seq num 14
+slave 5: msg {state,#Ref<0.3493135637.175898625.20639>,{0,0,0}} with seq num 13
+slave 3: msg {state,#Ref<0.3493135637.175898625.20639>,{0,0,0}} with seq num 14
+leader 1: received {mcast, {state,#Ref<0.3493135637.175898625.20639>,{0,0,0}}} with seq num 15
+slave 4: msg {state,#Ref<0.3493135637.175898625.20639>,{0,0,0}} with seq num 14
+leader 1: crash
+slave 2: msg {state,#Ref<0.3493135637.175898625.20639>,{0,0,0}} with seq num 15
+slave 3: msg {state,#Ref<0.3493135637.175898625.20639>,{0,0,0}} with seq num 15
+slave 2: leader, went down <0.138.0>
+slave 3: leader, went down <0.138.0>
+slave 5: leader, went down <0.138.0>
+Leader : 2
+Slave : 3
+Slave : 5
+slave 3: msg {state,#Ref<0.3493135637.175898625.20639>,{0,0,0}} with seq num 16
+slave 5: msg {state,#Ref<0.3493135637.175898625.20639>,{0,0,0}} with seq num 15
+slave 3: view 16 [<0.140.0>,<0.141.0>,<0.142.0>,<0.143.0>]
+slave 5: view 16 [<0.140.0>,<0.141.0>,<0.142.0>,<0.143.0>]
+slave 4: leader, went down <0.138.0>
+Slave : 4
+slave 4: msg {state,#Ref<0.3493135637.175898625.20639>,{0,0,0}} with seq num 15
+slave 4: view 16 [<0.140.0>,<0.141.0>,<0.142.0>,<0.143.0>]
+leader 2: received {mcast, {change,16}} with seq num 16
+slave 3: received {mcast, {change,5}} with seq num 16
+slave 4: msg {change,16} with seq num 16
+slave 5: msg {change,16} with seq num 16
+slave 3: msg {change,16} with seq num 16
+leader 2: received {mcast, {change,5}} with seq num 17
+slave 3: msg {change,5} with seq num 17
+slave 4: msg {change,5} with seq num 17
+slave 5: msg {change,5} with seq num 17
+slave 3: received {mcast, {change,7}} with seq num 18
+leader 2: received {mcast, {change,7}} with seq num 18
+slave 3: msg {change,7} with seq num 18
+slave 4: msg {change,7} with seq num 18
+slave 5: msg {change,7} with seq num 18
+leader 2: received {mcast, {change,12}} with seq num 19
+slave 3: received {mcast, {change,5}} with seq num 19
+slave 4: received {mcast, {change,2}} with seq num 19
+slave 5: received {mcast, {change,13}} with seq num 19
+slave 3: msg {change,12} with seq num 19
+leader 2: received {mcast, {change,5}} with seq num 20
+slave 5: msg {change,12} with seq num 19
+slave 4: msg {change,12} with seq num 19
+leader 2: received {mcast, {change,13}} with seq num 21
+slave 3: msg {change,5} with seq num 20
+slave 5: msg {change,5} with seq num 20
+slave 4: msg {change,5} with seq num 20
+leader 2: received {mcast, {change,2}} with seq num 22
+slave 3: msg {change,13} with seq num 21
+slave 5: msg {change,13} with seq num 21
+slave 4: msg {change,13} with seq num 21
+slave 3: msg {change,2} with seq num 22
+slave 5: msg {change,2} with seq num 22
+slave 4: msg {change,2} with seq num 22
+slave 5: received {mcast, {change,17}} with seq num 23
+leader 2: received {mcast, {change,17}} with seq num 23
+slave 5: msg {change,17} with seq num 23
+slave 3: msg {change,17} with seq num 23
+slave 4: msg {change,17} with seq num 23
+slave 3: received {mcast, {change,20}} with seq num 24
+leader 2: received {mcast, {change,20}} with seq num 24
+slave 3: msg {change,20} with seq num 24
+slave 4: msg {change,20} with seq num 24
+slave 5: msg {change,20} with seq num 24
+slave 4: received {mcast, {change,13}} with seq num 25
+leader 2: received {mcast, {change,13}} with seq num 25
+slave 3: msg {change,13} with seq num 25
+slave 4: msg {change,13} with seq num 25
+slave 5: lost msg {change,13} with seq num 25
+slave 5: received {mcast, {change,11}} with seq num 25
+leader 2: received {mcast, {change,11}} with seq num 26
+slave 5: msg {change,11} with seq num 25
+slave 3: msg {change,11} with seq num 26
+slave 4: msg {change,11} with seq num 26
+slave 3: received {mcast, {change,6}} with seq num 27
+leader 2: received {mcast, {change,6}} with seq num 27
+slave 3: msg {change,6} with seq num 27
+slave 4: msg {change,6} with seq num 27
+slave 5: msg {change,6} with seq num 27
+slave 5: received {mcast, {change,17}} with seq num 28
+leader 2: received {mcast, {change,17}} with seq num 28
+slave 3: msg {change,17} with seq num 28
+slave 4: msg {change,17} with seq num 28
+slave 5: msg {change,17} with seq num 28
+slave 3: received {mcast, {change,8}} with seq num 29
+leader 2: received {mcast, {change,8}} with seq num 29
+slave 3: msg {change,8} with seq num 29
+slave 4: msg {change,8} with seq num 29
+slave 5: msg {change,8} with seq num 29
+slave 3: received {mcast, {change,9}} with seq num 30
+leader 2: received {mcast, {change,9}} with seq num 30
+slave 3: msg {change,9} with seq num 30
+slave 4: msg {change,9} with seq num 30
+slave 5: msg {change,9} with seq num 30
+slave 4: received {mcast, {change,20}} with seq num 31
+leader 2: received {mcast, {change,20}} with seq num 31
+slave 3: msg {change,20} with seq num 31
+slave 4: msg {change,20} with seq num 31
+slave 5: msg {change,20} with seq num 31
+slave 5: received {mcast, {change,10}} with seq num 32
+leader 2: received {mcast, {change,10}} with seq num 32
+slave 3: msg {change,10} with seq num 32
+slave 4: msg {change,10} with seq num 32
+slave 5: msg {change,10} with seq num 32
+leader 2: received {mcast, {change,8}} with seq num 33
+slave 3: msg {change,8} with seq num 33
+slave 4: msg {change,8} with seq num 33
+slave 5: msg {change,8} with seq num 33
+slave 4: received {mcast, {change,15}} with seq num 34
+leader 2: received {mcast, {change,15}} with seq num 34
+slave 3: msg {change,15} with seq num 34
+slave 4: msg {change,15} with seq num 34
+slave 5: msg {change,15} with seq num 34
+slave 3: received {mcast, {change,11}} with seq num 35
+leader 2: received {mcast, {change,11}} with seq num 35
+slave 3: msg {change,11} with seq num 35
+slave 4: msg {change,11} with seq num 35
+slave 5: msg {change,11} with seq num 35
+slave 3: received {mcast, {change,19}} with seq num 36
+leader 2: received {mcast, {change,19}} with seq num 36
+slave 3: msg {change,19} with seq num 36
+slave 4: msg {change,19} with seq num 36
+slave 5: msg {change,19} with seq num 36
+leader 2: received {mcast, {change,11}} with seq num 37
+slave 3: msg {change,11} with seq num 37
+slave 4: msg {change,11} with seq num 37
+slave 5: lost msg {change,11} with seq num 37
+slave 3: received {mcast, {change,3}} with seq num 38
+leader 2: received {mcast, {change,3}} with seq num 38
+slave 3: msg {change,3} with seq num 38
+slave 4: msg {change,3} with seq num 38
+slave 5: msg {change,3} with seq num 37
+slave 3: received {mcast, {change,17}} with seq num 39
+leader 2: received {mcast, {change,17}} with seq num 39
+slave 3: msg {change,17} with seq num 39
+slave 4: msg {change,17} with seq num 39
+slave 5: msg {change,17} with seq num 39
+slave 3: received {mcast, {change,11}} with seq num 40
+leader 2: received {mcast, {change,11}} with seq num 40
+slave 3: msg {change,11} with seq num 40
+slave 4: msg {change,11} with seq num 40
+slave 5: msg {change,11} with seq num 40
+slave 3: received {mcast, {change,17}} with seq num 41
+leader 2: received {mcast, {change,17}} with seq num 41
+slave 3: msg {change,17} with seq num 41
+slave 4: msg {change,17} with seq num 41
+slave 5: msg {change,17} with seq num 41
+slave 3: received {mcast, {change,11}} with seq num 42
+leader 2: received {mcast, {change,11}} with seq num 42
+slave 3: msg {change,11} with seq num 42
+slave 4: msg {change,11} with seq num 42
+slave 5: lost msg {change,11} with seq num 42
+slave 3: received {mcast, {change,20}} with seq num 43
+leader 2: received {mcast, {change,20}} with seq num 43
+slave 3: msg {change,20} with seq num 43
+slave 4: msg {change,20} with seq num 43
+slave 5: msg {change,20} with seq num 42
+slave 5: received {mcast, {change,18}} with seq num 44
+leader 2: received {mcast, {change,18}} with seq num 44
+slave 3: msg {change,18} with seq num 44
+slave 4: msg {change,18} with seq num 44
+slave 5: msg {change,18} with seq num 44
+leader 2: received {mcast, {change,15}} with seq num 45
+slave 3: msg {change,15} with seq num 45
+slave 4: msg {change,15} with seq num 45
+slave 5: msg {change,15} with seq num 45
+slave 5: received {mcast, {change,19}} with seq num 46
+leader 2: received {mcast, {change,19}} with seq num 46
+slave 3: msg {change,19} with seq num 46
+slave 4: msg {change,19} with seq num 46
+slave 5: lost msg {change,19} with seq num 46
+slave 5: received {mcast, {change,3}} with seq num 46
+leader 2: received {mcast, {change,3}} with seq num 47
+slave 3: msg {change,3} with seq num 47
+slave 4: msg {change,3} with seq num 47
+slave 5: msg {change,3} with seq num 46
+slave 3: received {mcast, {change,15}} with seq num 48
+leader 2: received {mcast, {change,15}} with seq num 48
+slave 3: lost msg {change,15} with seq num 48
+slave 4: lost msg {change,15} with seq num 48
+slave 5: msg {change,15} with seq num 48
+leader 2: received {mcast, {change,18}} with seq num 49
+slave 3: msg {change,18} with seq num 48
+slave 4: msg {change,18} with seq num 48
+slave 5: msg {change,18} with seq num 49
+leader 2: received {mcast, {change,19}} with seq num 50
+slave 3: msg {change,19} with seq num 50
+slave 4: msg {change,19} with seq num 50
+slave 5: msg {change,19} with seq num 50
+slave 3: received {mcast, {change,14}} with seq num 51
+leader 2: received {mcast, {change,14}} with seq num 51
+slave 3: msg {change,14} with seq num 51
+slave 4: msg {change,14} with seq num 51
+slave 5: msg {change,14} with seq num 51
+leader 2: received {mcast, {change,5}} with seq num 52
+slave 3: msg {change,5} with seq num 52
+slave 4: msg {change,5} with seq num 52
+slave 5: msg {change,5} with seq num 52
+leader 2: received {mcast, {change,18}} with seq num 53
+slave 3: msg {change,18} with seq num 53
+slave 4: msg {change,18} with seq num 53
+slave 5: msg {change,18} with seq num 53
+leader 2: received {mcast, {change,3}} with seq num 54
+slave 3: msg {change,3} with seq num 54
+slave 4: msg {change,3} with seq num 54
+slave 5: lost msg {change,3} with seq num 54
+slave 3: received {mcast, {change,5}} with seq num 55
+leader 2: received {mcast, {change,5}} with seq num 55
+slave 3: lost msg {change,5} with seq num 55
+slave 4: msg {change,5} with seq num 55
+slave 5: lost msg {change,5} with seq num 54
+slave 3: received {mcast, {change,5}} with seq num 55
+leader 2: received {mcast, {change,5}} with seq num 56
+slave 3: msg {change,5} with seq num 55
+slave 4: msg {change,5} with seq num 56
+slave 5: msg {change,5} with seq num 54
+leader 2: received {mcast, {change,17}} with seq num 57
+slave 3: msg {change,17} with seq num 57
+slave 4: msg {change,17} with seq num 57
+slave 5: msg {change,17} with seq num 57
+leader 2: received {mcast, {change,3}} with seq num 58
+slave 3: msg {change,3} with seq num 58
+slave 4: msg {change,3} with seq num 58
+slave 5: msg {change,3} with seq num 58
+slave 4: received {mcast, {change,4}} with seq num 59
+leader 2: received {mcast, {change,4}} with seq num 59
+slave 3: msg {change,4} with seq num 59
+slave 4: msg {change,4} with seq num 59
+slave 5: msg {change,4} with seq num 59
+slave 5: received {mcast, {change,8}} with seq num 60
+leader 2: received {mcast, {change,8}} with seq num 60
+slave 3: msg {change,8} with seq num 60
+slave 4: msg {change,8} with seq num 60
+slave 5: msg {change,8} with seq num 60
+leader 2: received {mcast, {change,2}} with seq num 61
+slave 3: msg {change,2} with seq num 61
+slave 4: msg {change,2} with seq num 61
+slave 5: msg {change,2} with seq num 61
+leader 2: received {mcast, {change,8}} with seq num 62
+slave 3: msg {change,8} with seq num 62
+slave 4: msg {change,8} with seq num 62
+slave 5: msg {change,8} with seq num 62
+slave 3: received {mcast, {change,11}} with seq num 63
+leader 2: received {mcast, {change,11}} with seq num 63
+slave 3: msg {change,11} with seq num 63
+slave 4: msg {change,11} with seq num 63
+slave 5: msg {change,11} with seq num 63
+slave 5: received {mcast, {change,15}} with seq num 64
+leader 2: received {mcast, {change,15}} with seq num 64
+slave 3: msg {change,15} with seq num 64
+slave 4: lost msg {change,15} with seq num 64
+slave 5: msg {change,15} with seq num 64
+slave 3: received {mcast, {change,12}} with seq num 65
+leader 2: received {mcast, {change,12}} with seq num 65
+slave 3: msg {change,12} with seq num 65
+slave 4: msg {change,12} with seq num 64
+slave 5: msg {change,12} with seq num 65
+slave 3: received {mcast, {change,12}} with seq num 66
+leader 2: received {mcast, {change,12}} with seq num 66
+slave 3: msg {change,12} with seq num 66
+slave 4: msg {change,12} with seq num 66
+slave 5: msg {change,12} with seq num 66
+slave 3: received {mcast, {change,5}} with seq num 67
+leader 2: received {mcast, {change,5}} with seq num 67
+slave 3: msg {change,5} with seq num 67
+slave 4: msg {change,5} with seq num 67
+slave 5: msg {change,5} with seq num 67
+leader 2: received {mcast, {change,18}} with seq num 68
+slave 3: msg {change,18} with seq num 68
+slave 4: msg {change,18} with seq num 68
+slave 5: msg {change,18} with seq num 68
+slave 5: received {mcast, {change,13}} with seq num 69
+leader 2: received {mcast, {change,13}} with seq num 69
+slave 3: msg {change,13} with seq num 69
+slave 4: msg {change,13} with seq num 69
+slave 5: msg {change,13} with seq num 69
+leader 2: received {mcast, {change,3}} with seq num 70
+slave 3: msg {change,3} with seq num 70
+slave 4: msg {change,3} with seq num 70
+slave 5: lost msg {change,3} with seq num 70
+slave 4: received {mcast, {change,10}} with seq num 71
+leader 2: received {mcast, {change,10}} with seq num 71
+slave 3: msg {change,10} with seq num 71
+slave 4: msg {change,10} with seq num 71
+slave 5: msg {change,10} with seq num 70
+slave 5: received {mcast, {change,2}} with seq num 72
+leader 2: received {mcast, {change,2}} with seq num 72
+slave 3: msg {change,2} with seq num 72
+slave 4: msg {change,2} with seq num 72
+slave 5: msg {change,2} with seq num 72
+slave 5: received {mcast, {change,1}} with seq num 73
+leader 2: received {mcast, {change,1}} with seq num 73
+slave 3: msg {change,1} with seq num 73
+slave 4: msg {change,1} with seq num 73
+slave 5: msg {change,1} with seq num 73
+slave 3: received {mcast, {change,10}} with seq num 74
+leader 2: received {mcast, {change,10}} with seq num 74
+slave 3: msg {change,10} with seq num 74
+slave 4: lost msg {change,10} with seq num 74
+slave 5: msg {change,10} with seq num 74
+slave 3: received {mcast, {change,10}} with seq num 75
+leader 2: received {mcast, {change,10}} with seq num 75
+slave 3: msg {change,10} with seq num 75
+slave 4: msg {change,10} with seq num 74
+slave 5: msg {change,10} with seq num 75
+slave 4: received {mcast, {change,19}} with seq num 76
+leader 2: received {mcast, {change,19}} with seq num 76
+slave 3: msg {change,19} with seq num 76
+slave 4: msg {change,19} with seq num 76
+slave 5: msg {change,19} with seq num 76
+slave 4: received {mcast, {change,19}} with seq num 77
+leader 2: received {mcast, {change,19}} with seq num 77
+slave 3: lost msg {change,19} with seq num 77
+slave 4: msg {change,19} with seq num 77
+slave 5: msg {change,19} with seq num 77
+slave 3: received {mcast, {change,14}} with seq num 77
+leader 2: received {mcast, {change,14}} with seq num 78
+slave 3: msg {change,14} with seq num 77
+slave 4: msg {change,14} with seq num 78
+slave 5: msg {change,14} with seq num 78
+slave 3: received {mcast, {change,10}} with seq num 79
+leader 2: received {mcast, {change,10}} with seq num 79
+slave 3: msg {change,10} with seq num 79
+slave 4: msg {change,10} with seq num 79
+slave 5: msg {change,10} with seq num 79
+slave 5: received {mcast, {change,3}} with seq num 80
+leader 2: received {mcast, {change,3}} with seq num 80
+slave 3: msg {change,3} with seq num 80
+slave 4: msg {change,3} with seq num 80
+slave 5: msg {change,3} with seq num 80
+slave 5: received {mcast, {change,4}} with seq num 81
+leader 2: received {mcast, {change,4}} with seq num 81
+slave 3: msg {change,4} with seq num 81
+slave 4: msg {change,4} with seq num 81
+slave 5: msg {change,4} with seq num 81
+slave 3: received {mcast, {change,4}} with seq num 82
+leader 2: received {mcast, {change,4}} with seq num 82
+slave 3: msg {change,4} with seq num 82
+slave 4: msg {change,4} with seq num 82
+slave 5: msg {change,4} with seq num 82
+slave 5: received {mcast, {change,12}} with seq num 83
+leader 2: received {mcast, {change,12}} with seq num 83
+slave 3: msg {change,12} with seq num 83
+slave 4: msg {change,12} with seq num 83
+slave 5: msg {change,12} with seq num 83
+slave 5: received {mcast, {change,16}} with seq num 84
+leader 2: received {mcast, {change,16}} with seq num 84
+slave 3: msg {change,16} with seq num 84
+slave 4: msg {change,16} with seq num 84
+slave 5: msg {change,16} with seq num 84
+slave 5: received {mcast, {change,8}} with seq num 85
+leader 2: received {mcast, {change,8}} with seq num 85
+slave 3: msg {change,8} with seq num 85
+slave 4: msg {change,8} with seq num 85
+slave 5: msg {change,8} with seq num 85
+slave 4: received {mcast, {change,16}} with seq num 86
+leader 2: received {mcast, {change,16}} with seq num 86
+leader 2: crash
+slave 3: msg {change,16} with seq num 86
+slave 4: msg {change,16} with seq num 86
+slave 5: msg {change,16} with seq num 86
+slave 3: leader, went down <0.140.0>
+slave 5: leader, went down <0.140.0>
+slave 4: leader, went down <0.140.0>
+Leader : 3
+Slave : 5
+Slave : 4
+slave 5: msg {change,16} with seq num 87
+slave 4: msg {change,16} with seq num 87
+slave 5: view 87 [<0.141.0>,<0.142.0>,<0.143.0>]
+slave 4: view 87 [<0.141.0>,<0.142.0>,<0.143.0>]
+slave 5: received {mcast, {change,6}} with seq num 87
+leader 3: received {mcast, {change,6}} with seq num 87
+slave 4: msg {change,6} with seq num 87
+slave 5: msg {change,6} with seq num 87
+leader 3: received {mcast, {change,5}} with seq num 88
+slave 4: msg {change,5} with seq num 88
+slave 5: msg {change,5} with seq num 88
+leader 3: received {mcast, {change,16}} with seq num 89
+slave 4: msg {change,16} with seq num 89
+slave 5: lost msg {change,16} with seq num 89
+slave 5: received {mcast, {change,13}} with seq num 89
+leader 3: received {mcast, {change,13}} with seq num 90
+slave 4: msg {change,13} with seq num 90
+slave 5: msg {change,13} with seq num 89
+slave 4: received {mcast, {change,12}} with seq num 91
+leader 3: received {mcast, {change,12}} with seq num 91
+slave 4: msg {change,12} with seq num 91
+slave 5: msg {change,12} with seq num 91
+slave 4: received {mcast, {change,20}} with seq num 92
+leader 3: received {mcast, {change,20}} with seq num 92
+slave 4: msg {change,20} with seq num 92
+slave 5: msg {change,20} with seq num 92
+leader 3: received {mcast, {change,14}} with seq num 93
+slave 4: msg {change,14} with seq num 93
+slave 5: msg {change,14} with seq num 93
+slave 5: received {mcast, {change,3}} with seq num 94
+leader 3: received {mcast, {change,3}} with seq num 94
+slave 4: msg {change,3} with seq num 94
+slave 5: msg {change,3} with seq num 94
+slave 5: received {mcast, {change,6}} with seq num 95
+leader 3: received {mcast, {change,6}} with seq num 95
+slave 4: msg {change,6} with seq num 95
+slave 5: msg {change,6} with seq num 95
+slave 5: received {mcast, {change,15}} with seq num 96
+leader 3: received {mcast, {change,15}} with seq num 96
+slave 4: msg {change,15} with seq num 96
+slave 5: msg {change,15} with seq num 96
+leader 3: received {mcast, {change,14}} with seq num 97
+slave 4: msg {change,14} with seq num 97
+slave 5: msg {change,14} with seq num 97
+leader 3: received {mcast, {change,2}} with seq num 98
+slave 4: msg {change,2} with seq num 98
+slave 5: lost msg {change,2} with seq num 98
+slave 5: received {mcast, {change,13}} with seq num 98
+leader 3: received {mcast, {change,13}} with seq num 99
+slave 4: msg {change,13} with seq num 99
+slave 5: msg {change,13} with seq num 98
+slave 4: received {mcast, {change,20}} with seq num 100
+leader 3: received {mcast, {change,20}} with seq num 100
+slave 4: msg {change,20} with seq num 100
+slave 5: msg {change,20} with seq num 100
+leader 3: received {mcast, {change,17}} with seq num 101
+slave 4: msg {change,17} with seq num 101
+slave 5: msg {change,17} with seq num 101
+leader 3: received {mcast, {change,12}} with seq num 102
+slave 4: msg {change,12} with seq num 102
+slave 5: msg {change,12} with seq num 102
+slave 5: received {mcast, {change,18}} with seq num 103
+leader 3: received {mcast, {change,18}} with seq num 103
+slave 4: msg {change,18} with seq num 103
+slave 5: msg {change,18} with seq num 103
+slave 4: received {mcast, {change,2}} with seq num 104
+leader 3: received {mcast, {change,2}} with seq num 104
+slave 4: msg {change,2} with seq num 104
+slave 5: msg {change,2} with seq num 104
+leader 3: received {mcast, {change,16}} with seq num 105
+slave 4: msg {change,16} with seq num 105
+slave 5: msg {change,16} with seq num 105
+slave 5: received {mcast, {change,16}} with seq num 106
+leader 3: received {mcast, {change,16}} with seq num 106
+slave 4: msg {change,16} with seq num 106
+slave 5: msg {change,16} with seq num 106
+slave 5: received {mcast, {change,4}} with seq num 107
+leader 3: received {mcast, {change,4}} with seq num 107
+slave 4: msg {change,4} with seq num 107
+slave 5: msg {change,4} with seq num 107
+slave 5: received {mcast, {change,13}} with seq num 108
+leader 3: received {mcast, {change,13}} with seq num 108
+slave 4: msg {change,13} with seq num 108
+slave 5: msg {change,13} with seq num 108
+slave 4: received {mcast, {change,11}} with seq num 109
+leader 3: received {mcast, {change,11}} with seq num 109
+slave 4: msg {change,11} with seq num 109
+slave 5: msg {change,11} with seq num 109
+slave 5: received {mcast, {change,8}} with seq num 110
+leader 3: received {mcast, {change,8}} with seq num 110
+slave 4: msg {change,8} with seq num 110
+slave 5: msg {change,8} with seq num 110
+slave 4: received {mcast, {change,9}} with seq num 111
+leader 3: received {mcast, {change,9}} with seq num 111
+slave 4: msg {change,9} with seq num 111
+slave 5: msg {change,9} with seq num 111
+leader 3: received {mcast, {change,4}} with seq num 112
+slave 4: msg {change,4} with seq num 112
+slave 5: msg {change,4} with seq num 112
+slave 4: received {mcast, {change,17}} with seq num 113
+leader 3: received {mcast, {change,17}} with seq num 113
+slave 4: msg {change,17} with seq num 113
+slave 5: lost msg {change,17} with seq num 113
+slave 4: received {mcast, {change,5}} with seq num 114
+leader 3: received {mcast, {change,5}} with seq num 114
+slave 4: msg {change,5} with seq num 114
+slave 5: msg {change,5} with seq num 113
+slave 4: received {mcast, {change,13}} with seq num 115
+leader 3: received {mcast, {change,13}} with seq num 115
+slave 4: msg {change,13} with seq num 115
+slave 5: msg {change,13} with seq num 115
+leader 3: received {mcast, {change,19}} with seq num 116
+slave 4: msg {change,19} with seq num 116
+slave 5: msg {change,19} with seq num 116
+slave 4: received {mcast, {change,9}} with seq num 117
+leader 3: received {mcast, {change,9}} with seq num 117
+slave 4: msg {change,9} with seq num 117
+slave 5: msg {change,9} with seq num 117
+slave 4: received {mcast, {change,13}} with seq num 118
+leader 3: received {mcast, {change,13}} with seq num 118
+slave 4: msg {change,13} with seq num 118
+slave 5: msg {change,13} with seq num 118
+slave 5: received {mcast, {change,10}} with seq num 119
+leader 3: received {mcast, {change,10}} with seq num 119
+slave 4: msg {change,10} with seq num 119
+slave 5: msg {change,10} with seq num 119
+slave 4: received {mcast, {change,6}} with seq num 120
+leader 3: received {mcast, {change,6}} with seq num 120
+slave 4: msg {change,6} with seq num 120
+slave 5: msg {change,6} with seq num 120
+leader 3: received {mcast, {change,13}} with seq num 121
+slave 4: msg {change,13} with seq num 121
+slave 5: msg {change,13} with seq num 121
+leader 3: received {mcast, {change,20}} with seq num 122
+slave 4: msg {change,20} with seq num 122
+slave 5: msg {change,20} with seq num 122
+slave 5: received {mcast, {change,16}} with seq num 123
+leader 3: received {mcast, {change,16}} with seq num 123
+slave 4: msg {change,16} with seq num 123
+slave 5: msg {change,16} with seq num 123
+slave 5: received {mcast, {change,17}} with seq num 124
+leader 3: received {mcast, {change,17}} with seq num 124
+slave 4: msg {change,17} with seq num 124
+slave 5: msg {change,17} with seq num 124
+slave 5: received {mcast, {change,13}} with seq num 125
+leader 3: received {mcast, {change,13}} with seq num 125
+slave 4: msg {change,13} with seq num 125
+slave 5: msg {change,13} with seq num 125
+slave 5: received {mcast, {change,2}} with seq num 126
+leader 3: received {mcast, {change,2}} with seq num 126
+slave 4: msg {change,2} with seq num 126
+slave 5: msg {change,2} with seq num 126
+slave 4: received {mcast, {change,14}} with seq num 127
+leader 3: received {mcast, {change,14}} with seq num 127
+slave 4: msg {change,14} with seq num 127
+slave 5: msg {change,14} with seq num 127
+slave 4: received {mcast, {change,2}} with seq num 128
+leader 3: received {mcast, {change,2}} with seq num 128
+slave 4: msg {change,2} with seq num 128
+slave 5: lost msg {change,2} with seq num 128
+slave 4: received {mcast, {change,17}} with seq num 129
+leader 3: received {mcast, {change,17}} with seq num 129
+slave 4: msg {change,17} with seq num 129
+slave 5: msg {change,17} with seq num 128
+slave 5: received {mcast, {change,6}} with seq num 130
+leader 3: received {mcast, {change,6}} with seq num 130
+slave 4: lost msg {change,6} with seq num 130
+slave 5: msg {change,6} with seq num 130
+slave 5: received {mcast, {change,18}} with seq num 131
+leader 3: received {mcast, {change,18}} with seq num 131
+slave 4: msg {change,18} with seq num 130
+slave 5: msg {change,18} with seq num 131
+slave 5: received {mcast, {change,7}} with seq num 132
+leader 3: received {mcast, {change,7}} with seq num 132
+slave 4: msg {change,7} with seq num 132
+slave 5: msg {change,7} with seq num 132
+leader 3: received {mcast, {change,17}} with seq num 133
+slave 4: msg {change,17} with seq num 133
+slave 5: msg {change,17} with seq num 133
+slave 5: received {mcast, {change,7}} with seq num 134
+leader 3: received {mcast, {change,7}} with seq num 134
+slave 4: msg {change,7} with seq num 134
+slave 5: msg {change,7} with seq num 134
+slave 5: received {mcast, {change,20}} with seq num 135
+leader 3: received {mcast, {change,20}} with seq num 135
+slave 4: msg {change,20} with seq num 135
+slave 5: lost msg {change,20} with seq num 135
+slave 4: received {mcast, {change,9}} with seq num 136
+leader 3: received {mcast, {change,9}} with seq num 136
+slave 4: msg {change,9} with seq num 136
+slave 5: msg {change,9} with seq num 135
+slave 5: received {mcast, {change,15}} with seq num 137
+leader 3: received {mcast, {change,15}} with seq num 137
+slave 4: msg {change,15} with seq num 137
+slave 5: msg {change,15} with seq num 137
+slave 5: received {mcast, {change,14}} with seq num 138
+leader 3: received {mcast, {change,14}} with seq num 138
+slave 4: msg {change,14} with seq num 138
+slave 5: msg {change,14} with seq num 138
+leader 3: received {mcast, {change,2}} with seq num 139
+leader 3: crash
+slave 4: msg {change,2} with seq num 139
+slave 5: msg {change,2} with seq num 139
+slave 5: leader, went down <0.141.0>
+slave 4: leader, went down <0.141.0>
+Slave : 5
+Leader : 4
+slave 5: msg {change,2} with seq num 140
+slave 5: view 140 [<0.142.0>,<0.143.0>]
+leader 4: received {mcast, {change,10}} with seq num 140
+slave 5: msg {change,10} with seq num 140
+slave 5: received {mcast, {change,7}} with seq num 141
+leader 4: received {mcast, {change,7}} with seq num 141
+slave 5: msg {change,7} with seq num 141
+leader 4: received {mcast, {change,6}} with seq num 142
+slave 5: msg {change,6} with seq num 142
+slave 5: received {mcast, {change,16}} with seq num 143
+leader 4: received {mcast, {change,16}} with seq num 143
+slave 5: msg {change,16} with seq num 143
+slave 5: received {mcast, {change,15}} with seq num 144
+leader 4: received {mcast, {change,15}} with seq num 144
+slave 5: msg {change,15} with seq num 144
+leader 4: received {mcast, {change,6}} with seq num 145
+slave 5: msg {change,6} with seq num 145
+slave 5: received {mcast, {change,4}} with seq num 146
+leader 4: received {mcast, {change,4}} with seq num 146
+slave 5: msg {change,4} with seq num 146
+slave 5: received {mcast, {change,14}} with seq num 147
+leader 4: received {mcast, {change,14}} with seq num 147
+slave 5: msg {change,14} with seq num 147
+slave 5: received {mcast, {change,12}} with seq num 148
+leader 4: received {mcast, {change,12}} with seq num 148
+slave 5: msg {change,12} with seq num 148
+slave 5: received {mcast, {change,1}} with seq num 149
+leader 4: received {mcast, {change,1}} with seq num 149
+slave 5: msg {change,1} with seq num 149
+leader 4: received {mcast, {change,5}} with seq num 150
+slave 5: msg {change,5} with seq num 150
+leader 4: received {mcast, {change,16}} with seq num 151
+slave 5: msg {change,16} with seq num 151
+slave 5: received {mcast, {change,3}} with seq num 152
+leader 4: received {mcast, {change,3}} with seq num 152
+slave 5: msg {change,3} with seq num 152
+slave 5: received {mcast, {change,2}} with seq num 153
+leader 4: received {mcast, {change,2}} with seq num 153
+slave 5: msg {change,2} with seq num 153
+leader 4: received {mcast, {change,13}} with seq num 154
+slave 5: msg {change,13} with seq num 154
+leader 4: received {mcast, {change,16}} with seq num 155
+slave 5: msg {change,16} with seq num 155
+leader 4: received {mcast, {change,7}} with seq num 156
+slave 5: msg {change,7} with seq num 156
+leader 4: received {mcast, {change,17}} with seq num 157
+slave 5: msg {change,17} with seq num 157
+leader 4: received {mcast, {change,9}} with seq num 158
+slave 5: msg {change,9} with seq num 158
+leader 4: received {mcast, {change,14}} with seq num 159
+slave 5: msg {change,14} with seq num 159
+slave 5: received {mcast, {change,13}} with seq num 160
+leader 4: received {mcast, {change,13}} with seq num 160
+slave 5: msg {change,13} with seq num 160
+leader 4: received {mcast, {change,14}} with seq num 161
+slave 5: msg {change,14} with seq num 161
+slave 5: received {mcast, {change,18}} with seq num 162
+leader 4: received {mcast, {change,18}} with seq num 162
+slave 5: msg {change,18} with seq num 162
+slave 5: received {mcast, {change,9}} with seq num 163
+leader 4: received {mcast, {change,9}} with seq num 163
+slave 5: msg {change,9} with seq num 163
+leader 4: received {mcast, {change,1}} with seq num 164
+slave 5: msg {change,1} with seq num 164
+slave 5: received {mcast, {change,15}} with seq num 165
+leader 4: received {mcast, {change,15}} with seq num 165
+slave 5: msg {change,15} with seq num 165
+slave 5: received {mcast, {change,12}} with seq num 166
+leader 4: received {mcast, {change,12}} with seq num 166
+slave 5: msg {change,12} with seq num 166
+leader 4: received {mcast, {change,8}} with seq num 167
+slave 5: msg {change,8} with seq num 167
+slave 5: received {mcast, {change,4}} with seq num 168
+leader 4: received {mcast, {change,4}} with seq num 168
+slave 5: msg {change,4} with seq num 168
+leader 4: received {mcast, {change,1}} with seq num 169
+slave 5: msg {change,1} with seq num 169
+leader 4: received {mcast, {change,18}} with seq num 170
+slave 5: msg {change,18} with seq num 170
+slave 5: received {mcast, {change,19}} with seq num 171
+leader 4: received {mcast, {change,19}} with seq num 171
+slave 5: msg {change,19} with seq num 171
+slave 5: received {mcast, {change,7}} with seq num 172
+leader 4: received {mcast, {change,7}} with seq num 172
+slave 5: msg {change,7} with seq num 172
+leader 4: received {mcast, {change,11}} with seq num 173
+slave 5: msg {change,11} with seq num 173
+slave 5: received {mcast, {change,16}} with seq num 174
+leader 4: received {mcast, {change,16}} with seq num 174
+slave 5: msg {change,16} with seq num 174
+leader 4: received {mcast, {change,13}} with seq num 175
+slave 5: msg {change,13} with seq num 175
+leader 4: received {mcast, {change,11}} with seq num 176
+slave 5: msg {change,11} with seq num 176
+leader 4: received {mcast, {change,3}} with seq num 177
+slave 5: msg {change,3} with seq num 177
+slave 5: received {mcast, {change,18}} with seq num 178
+leader 4: received {mcast, {change,18}} with seq num 178
+slave 5: msg {change,18} with seq num 178
+leader 4: received {mcast, {change,12}} with seq num 179
+slave 5: msg {change,12} with seq num 179
+leader 4: received {mcast, {change,4}} with seq num 180
+slave 5: msg {change,4} with seq num 180
+leader 4: received {mcast, {change,17}} with seq num 181
+slave 5: msg {change,17} with seq num 181
+leader 4: received {mcast, {change,7}} with seq num 182
+slave 5: lost msg {change,7} with seq num 182
+slave 5: received {mcast, {change,4}} with seq num 182
+leader 4: received {mcast, {change,4}} with seq num 183
+slave 5: msg {change,4} with seq num 182
+slave 5: received {mcast, {change,15}} with seq num 184
+leader 4: received {mcast, {change,15}} with seq num 184
+slave 5: msg {change,15} with seq num 184
+slave 5: received {mcast, {change,7}} with seq num 185
+leader 4: received {mcast, {change,7}} with seq num 185
+slave 5: lost msg {change,7} with seq num 185
+leader 4: received {mcast, {change,4}} with seq num 186
+slave 5: msg {change,4} with seq num 185
+slave 5: received {mcast, {change,6}} with seq num 187
+leader 4: received {mcast, {change,6}} with seq num 187
+slave 5: msg {change,6} with seq num 187
+leader 4: received {mcast, {change,12}} with seq num 188
+slave 5: msg {change,12} with seq num 188
+slave 5: received {mcast, {change,10}} with seq num 189
+leader 4: received {mcast, {change,10}} with seq num 189
+slave 5: msg {change,10} with seq num 189
+leader 4: received {mcast, {change,4}} with seq num 190
+slave 5: msg {change,4} with seq num 190
+slave 5: received {mcast, {change,10}} with seq num 191
+leader 4: received {mcast, {change,10}} with seq num 191
+slave 5: msg {change,10} with seq num 191
+slave 5: received {mcast, {change,14}} with seq num 192
+leader 4: received {mcast, {change,14}} with seq num 192
+slave 5: msg {change,14} with seq num 192
+leader 4: received {mcast, {change,6}} with seq num 193
+slave 5: msg {change,6} with seq num 193
+leader 4: received {mcast, {change,1}} with seq num 194
+slave 5: msg {change,1} with seq num 194
+slave 5: received {mcast, {change,12}} with seq num 195
+leader 4: received {mcast, {change,12}} with seq num 195
+slave 5: msg {change,12} with seq num 195
+slave 5: received {mcast, {change,2}} with seq num 196
+leader 4: received {mcast, {change,2}} with seq num 196
+slave 5: msg {change,2} with seq num 196
+leader 4: received {mcast, {change,20}} with seq num 197
+slave 5: msg {change,20} with seq num 197
+leader 4: received {mcast, {change,20}} with seq num 198
+slave 5: msg {change,20} with seq num 198
+slave 5: received {mcast, {change,6}} with seq num 199
+leader 4: received {mcast, {change,6}} with seq num 199
+slave 5: msg {change,6} with seq num 199
+slave 5: received {mcast, {change,6}} with seq num 200
+leader 4: received {mcast, {change,6}} with seq num 200
+slave 5: msg {change,6} with seq num 200
+slave 5: received {mcast, {change,6}} with seq num 201
+leader 4: received {mcast, {change,6}} with seq num 201
+slave 5: msg {change,6} with seq num 201
+slave 5: received {mcast, {change,8}} with seq num 202
+leader 4: received {mcast, {change,8}} with seq num 202
+slave 5: msg {change,8} with seq num 202
+leader 4: received {mcast, {change,2}} with seq num 203
+slave 5: msg {change,2} with seq num 203
+slave 5: received {mcast, {change,6}} with seq num 204
+leader 4: received {mcast, {change,6}} with seq num 204
+slave 5: msg {change,6} with seq num 204
+leader 4: received {mcast, {change,18}} with seq num 205
+slave 5: msg {change,18} with seq num 205
+slave 5: received {mcast, {change,18}} with seq num 206
+leader 4: received {mcast, {change,18}} with seq num 206
+slave 5: msg {change,18} with seq num 206
+leader 4: received {mcast, {change,13}} with seq num 207
+slave 5: msg {change,13} with seq num 207
+leader 4: received {mcast, {change,3}} with seq num 208
+slave 5: msg {change,3} with seq num 208
+leader 4: received {mcast, {change,14}} with seq num 209
+slave 5: msg {change,14} with seq num 209
+slave 5: received {mcast, {change,13}} with seq num 210
+leader 4: received {mcast, {change,13}} with seq num 210
+slave 5: msg {change,13} with seq num 210
+leader 4: received {mcast, {change,2}} with seq num 211
+slave 5: msg {change,2} with seq num 211
+slave 5: received {mcast, {change,14}} with seq num 212
+leader 4: received {mcast, {change,14}} with seq num 212
+slave 5: msg {change,14} with seq num 212
+leader 4: received {mcast, {change,9}} with seq num 213
+slave 5: msg {change,9} with seq num 213
+slave 5: received {mcast, {change,9}} with seq num 214
+leader 4: received {mcast, {change,9}} with seq num 214
+slave 5: msg {change,9} with seq num 214
+leader 4: received {mcast, {change,5}} with seq num 215
+slave 5: lost msg {change,5} with seq num 215
+leader 4: received {mcast, {change,11}} with seq num 216
+slave 5: msg {change,11} with seq num 215
+leader 4: received {mcast, {change,5}} with seq num 217
+slave 5: msg {change,5} with seq num 217
+slave 5: received {mcast, {change,15}} with seq num 218
+leader 4: received {mcast, {change,15}} with seq num 218
+slave 5: msg {change,15} with seq num 218
+slave 5: received {mcast, {change,17}} with seq num 219
+leader 4: received {mcast, {change,17}} with seq num 219
+slave 5: msg {change,17} with seq num 219
+slave 5: received {mcast, {change,12}} with seq num 220
+leader 4: received {mcast, {change,12}} with seq num 220
+slave 5: msg {change,12} with seq num 220
+slave 5: received {mcast, {change,6}} with seq num 221
+leader 4: received {mcast, {change,6}} with seq num 221
+slave 5: msg {change,6} with seq num 221
+leader 4: received {mcast, {change,20}} with seq num 222
+slave 5: msg {change,20} with seq num 222
+slave 5: received {mcast, {change,11}} with seq num 223
+leader 4: received {mcast, {change,11}} with seq num 223
+slave 5: msg {change,11} with seq num 223
+slave 5: received {mcast, {change,16}} with seq num 224
+leader 4: received {mcast, {change,16}} with seq num 224
+slave 5: msg {change,16} with seq num 224
+slave 5: received {mcast, {change,5}} with seq num 225
+leader 4: received {mcast, {change,5}} with seq num 225
+slave 5: msg {change,5} with seq num 225
+leader 4: received {mcast, {change,19}} with seq num 226
+slave 5: msg {change,19} with seq num 226
+leader 4: received {mcast, {change,19}} with seq num 227
+slave 5: msg {change,19} with seq num 227
+leader 4: received {mcast, {change,8}} with seq num 228
+slave 5: msg {change,8} with seq num 228
+leader 4: received {mcast, {change,16}} with seq num 229
+slave 5: msg {change,16} with seq num 229
+leader 4: received {mcast, {change,14}} with seq num 230
+slave 5: msg {change,14} with seq num 230
+leader 4: received {mcast, {change,16}} with seq num 231
+slave 5: msg {change,16} with seq num 231
+leader 4: received {mcast, {change,7}} with seq num 232
+slave 5: msg {change,7} with seq num 232
+leader 4: received {mcast, {change,10}} with seq num 233
+slave 5: msg {change,10} with seq num 233
+leader 4: received {mcast, {change,15}} with seq num 234
+slave 5: msg {change,15} with seq num 234
+leader 4: received {mcast, {change,8}} with seq num 235
+slave 5: msg {change,8} with seq num 235
+slave 5: received {mcast, {change,16}} with seq num 236
+leader 4: received {mcast, {change,16}} with seq num 236
+slave 5: msg {change,16} with seq num 236
+leader 4: received {mcast, {change,12}} with seq num 237
+slave 5: msg {change,12} with seq num 237
+leader 4: received {mcast, {change,4}} with seq num 238
+slave 5: msg {change,4} with seq num 238
+leader 4: received {mcast, {change,1}} with seq num 239
+slave 5: msg {change,1} with seq num 239
+slave 5: received {mcast, {change,6}} with seq num 240
+leader 4: received {mcast, {change,6}} with seq num 240
+slave 5: msg {change,6} with seq num 240
+slave 5: received {mcast, {change,12}} with seq num 241
+leader 4: received {mcast, {change,12}} with seq num 241
+slave 5: msg {change,12} with seq num 241
+slave 5: received {mcast, {change,8}} with seq num 242
+leader 4: received {mcast, {change,8}} with seq num 242
+slave 5: msg {change,8} with seq num 242
+slave 5: received {mcast, {change,3}} with seq num 243
+leader 4: received {mcast, {change,3}} with seq num 243
+slave 5: msg {change,3} with seq num 243
+slave 5: received {mcast, {change,17}} with seq num 244
+leader 4: received {mcast, {change,17}} with seq num 244
+slave 5: lost msg {change,17} with seq num 244
+slave 5: received {mcast, {change,2}} with seq num 244
+leader 4: received {mcast, {change,2}} with seq num 245
+slave 5: msg {change,2} with seq num 244
+leader 4: received {mcast, {change,6}} with seq num 246
+slave 5: msg {change,6} with seq num 246
+slave 5: received {mcast, {change,5}} with seq num 247
+leader 4: received {mcast, {change,5}} with seq num 247
+slave 5: msg {change,5} with seq num 247
+leader 4: received {mcast, {change,6}} with seq num 248
+slave 5: msg {change,6} with seq num 248
+leader 4: received {mcast, {change,11}} with seq num 249
+slave 5: msg {change,11} with seq num 249
+slave 5: received {mcast, {change,18}} with seq num 250
+leader 4: received {mcast, {change,18}} with seq num 250
+slave 5: msg {change,18} with seq num 250
+slave 5: received {mcast, {change,15}} with seq num 251
+leader 4: received {mcast, {change,15}} with seq num 251
+slave 5: msg {change,15} with seq num 251
+leader 4: received {mcast, {change,16}} with seq num 252
+slave 5: msg {change,16} with seq num 252
+slave 5: received {mcast, {change,16}} with seq num 253
+leader 4: received {mcast, {change,16}} with seq num 253
+slave 5: msg {change,16} with seq num 253
+slave 5: received {mcast, {change,18}} with seq num 254
+leader 4: received {mcast, {change,18}} with seq num 254
+slave 5: msg {change,18} with seq num 254
+slave 5: received {mcast, {change,15}} with seq num 255
+leader 4: received {mcast, {change,15}} with seq num 255
+slave 5: msg {change,15} with seq num 255
+leader 4: received {mcast, {change,20}} with seq num 256
+slave 5: msg {change,20} with seq num 256
+slave 5: received {mcast, {change,19}} with seq num 257
+leader 4: received {mcast, {change,19}} with seq num 257
+slave 5: msg {change,19} with seq num 257
+slave 5: received {mcast, {change,9}} with seq num 258
+leader 4: received {mcast, {change,9}} with seq num 258
+slave 5: msg {change,9} with seq num 258
+leader 4: received {mcast, {change,19}} with seq num 259
+slave 5: msg {change,19} with seq num 259
+slave 5: received {mcast, {change,9}} with seq num 260
+leader 4: received {mcast, {change,9}} with seq num 260
+slave 5: msg {change,9} with seq num 260
+slave 5: received {mcast, {change,1}} with seq num 261
+leader 4: received {mcast, {change,1}} with seq num 261
+slave 5: msg {change,1} with seq num 261
+slave 5: received {mcast, {change,12}} with seq num 262
+leader 4: received {mcast, {change,12}} with seq num 262
+slave 5: msg {change,12} with seq num 262
+slave 5: received {mcast, {change,2}} with seq num 263
+leader 4: received {mcast, {change,2}} with seq num 263
+slave 5: msg {change,2} with seq num 263
+leader 4: received {mcast, {change,17}} with seq num 264
+slave 5: msg {change,17} with seq num 264
+leader 4: received {mcast, {change,15}} with seq num 265
+slave 5: msg {change,15} with seq num 265
+slave 5: received {mcast, {change,4}} with seq num 266
+leader 4: received {mcast, {change,4}} with seq num 266
+slave 5: msg {change,4} with seq num 266
+leader 4: received {mcast, {change,10}} with seq num 267
+slave 5: msg {change,10} with seq num 267
+slave 5: received {mcast, {change,5}} with seq num 268
+leader 4: received {mcast, {change,5}} with seq num 268
+slave 5: msg {change,5} with seq num 268
+slave 5: received {mcast, {change,1}} with seq num 269
+leader 4: received {mcast, {change,1}} with seq num 269
+slave 5: msg {change,1} with seq num 269
+leader 4: received {mcast, {change,8}} with seq num 270
+slave 5: msg {change,8} with seq num 270
+leader 4: received {mcast, {change,13}} with seq num 271
+slave 5: msg {change,13} with seq num 271
+slave 5: received {mcast, {change,2}} with seq num 272
+leader 4: received {mcast, {change,2}} with seq num 272
+slave 5: msg {change,2} with seq num 272
+leader 4: received {mcast, {change,15}} with seq num 273
+slave 5: msg {change,15} with seq num 273
+leader 4: received {mcast, {change,13}} with seq num 274
+slave 5: lost msg {change,13} with seq num 274
+slave 5: received {mcast, {change,17}} with seq num 274
+leader 4: received {mcast, {change,17}} with seq num 275
+slave 5: msg {change,17} with seq num 274
+slave 5: received {mcast, {change,14}} with seq num 276
+leader 4: received {mcast, {change,14}} with seq num 276
+slave 5: msg {change,14} with seq num 276
+slave 5: received {mcast, {change,17}} with seq num 277
+leader 4: received {mcast, {change,17}} with seq num 277
+slave 5: msg {change,17} with seq num 277
+leader 4: received {mcast, {change,6}} with seq num 278
+slave 5: msg {change,6} with seq num 278
+slave 5: received {mcast, {change,12}} with seq num 279
+leader 4: received {mcast, {change,12}} with seq num 279
+slave 5: lost msg {change,12} with seq num 279
+leader 4: received {mcast, {change,20}} with seq num 280
+slave 5: msg {change,20} with seq num 279
+slave 5: received {mcast, {change,17}} with seq num 281
+leader 4: received {mcast, {change,17}} with seq num 281
+slave 5: msg {change,17} with seq num 281
+slave 5: received {mcast, {change,13}} with seq num 282
+leader 4: received {mcast, {change,13}} with seq num 282
+slave 5: msg {change,13} with seq num 282
+leader 4: received {mcast, {change,11}} with seq num 283
+slave 5: msg {change,11} with seq num 283
+slave 5: received {mcast, {change,18}} with seq num 284
+leader 4: received {mcast, {change,18}} with seq num 284
+slave 5: msg {change,18} with seq num 284
+leader 4: received {mcast, {change,1}} with seq num 285
+slave 5: msg {change,1} with seq num 285
+slave 5: received {mcast, {change,16}} with seq num 286
+leader 4: received {mcast, {change,16}} with seq num 286
+slave 5: msg {change,16} with seq num 286
+leader 4: received {mcast, {change,7}} with seq num 287
+slave 5: msg {change,7} with seq num 287
+slave 5: received {mcast, {change,10}} with seq num 288
+leader 4: received {mcast, {change,10}} with seq num 288
+slave 5: msg {change,10} with seq num 288
+slave 5: received {mcast, {change,1}} with seq num 289
+leader 4: received {mcast, {change,1}} with seq num 289
+slave 5: msg {change,1} with seq num 289
+slave 5: received {mcast, {change,18}} with seq num 290
+leader 4: received {mcast, {change,18}} with seq num 290
+slave 5: msg {change,18} with seq num 290
+leader 4: received {mcast, {change,4}} with seq num 291
+slave 5: msg {change,4} with seq num 291
+leader 4: received {mcast, {change,13}} with seq num 292
+slave 5: msg {change,13} with seq num 292
+leader 4: received {mcast, {change,18}} with seq num 293
+slave 5: msg {change,18} with seq num 293
+slave 5: received {mcast, {change,8}} with seq num 294
+leader 4: received {mcast, {change,8}} with seq num 294
+slave 5: msg {change,8} with seq num 294
+leader 4: received {mcast, {change,14}} with seq num 295
+slave 5: msg {change,14} with seq num 295
+leader 4: received {mcast, {change,18}} with seq num 296
+slave 5: msg {change,18} with seq num 296
+leader 4: received {mcast, {change,18}} with seq num 297
+slave 5: msg {change,18} with seq num 297
+slave 5: received {mcast, {change,16}} with seq num 298
+leader 4: received {mcast, {change,16}} with seq num 298
+slave 5: msg {change,16} with seq num 298
+slave 5: received {mcast, {change,12}} with seq num 299
+leader 4: received {mcast, {change,12}} with seq num 299
+slave 5: msg {change,12} with seq num 299
+leader 4: received {mcast, {change,20}} with seq num 300
+slave 5: msg {change,20} with seq num 300
+slave 5: received {mcast, {change,18}} with seq num 301
+leader 4: received {mcast, {change,18}} with seq num 301
+slave 5: msg {change,18} with seq num 301
+slave 5: received {mcast, {change,6}} with seq num 302
+leader 4: received {mcast, {change,6}} with seq num 302
+slave 5: msg {change,6} with seq num 302
+slave 5: received {mcast, {change,19}} with seq num 303
+leader 4: received {mcast, {change,19}} with seq num 303
+slave 5: msg {change,19} with seq num 303
+leader 4: received {mcast, {change,10}} with seq num 304
+slave 5: msg {change,10} with seq num 304
+slave 5: received {mcast, {change,10}} with seq num 305
+leader 4: received {mcast, {change,10}} with seq num 305
+slave 5: msg {change,10} with seq num 305
+slave 5: received {mcast, {change,9}} with seq num 306
+leader 4: received {mcast, {change,9}} with seq num 306
+slave 5: msg {change,9} with seq num 306
+slave 5: received {mcast, {change,20}} with seq num 307
+leader 4: received {mcast, {change,20}} with seq num 307
+slave 5: msg {change,20} with seq num 307
+leader 4: received {mcast, {change,17}} with seq num 308
+slave 5: msg {change,17} with seq num 308
+slave 5: received {mcast, {change,12}} with seq num 309
+leader 4: received {mcast, {change,12}} with seq num 309
+slave 5: msg {change,12} with seq num 309
+leader 4: received {mcast, {change,6}} with seq num 310
+slave 5: msg {change,6} with seq num 310
+leader 4: received {mcast, {change,1}} with seq num 311
+slave 5: msg {change,1} with seq num 311
+leader 4: received {mcast, {change,14}} with seq num 312
+slave 5: msg {change,14} with seq num 312
+slave 5: received {mcast, {change,14}} with seq num 313
+leader 4: received {mcast, {change,14}} with seq num 313
+slave 5: msg {change,14} with seq num 313
+slave 5: received {mcast, {change,11}} with seq num 314
+leader 4: received {mcast, {change,11}} with seq num 314
+slave 5: msg {change,11} with seq num 314
+slave 5: received {mcast, {change,3}} with seq num 315
+leader 4: received {mcast, {change,3}} with seq num 315
+slave 5: msg {change,3} with seq num 315
+slave 5: received {mcast, {change,17}} with seq num 316
+leader 4: received {mcast, {change,17}} with seq num 316
+slave 5: msg {change,17} with seq num 316
+slave 5: received {mcast, {change,12}} with seq num 317
+leader 4: received {mcast, {change,12}} with seq num 317
+slave 5: msg {change,12} with seq num 317
+slave 5: received {mcast, {change,8}} with seq num 318
+leader 4: received {mcast, {change,8}} with seq num 318
+slave 5: msg {change,8} with seq num 318

@@ -1,0 +1,197 @@
+------------------------------------------------------------------------------
+c(test).
+c(node1).
+
+FirstPid = test:start(node1).
+test:start(node1, FirstPid). // multiple times
+
+FirstPid ! probe.
+------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------
+testing on multiple terminals
+
+erl -name chordy@130.229.177.84 -setcookie chordy -connect_all false
+
+erl -name chordy2@130.229.177.84 -setcookie chordy -connect_all false
+
+Terminal 1
+P = test:start(node1).
+<0.88.0>
+register(node, P).
+
+Terminal 2
+test:start(node1, {node, 'chordy@130.229.177.84'}).
+------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------
+add key value pair to one of the node.
+
+test:add(5000, "msg", FirstPid).
+test:lookup(5000, <0.82.0>).
+------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------
+test extra part
+
+Pid = test:start(node3).
+test:start(node3, Pid).
+
+Pid ! probe.
+Pid ! stop.
+Pid ! probe.
+------------------------------------------------------------------------------
+
+
+% testing split functions
+
+register(one, node2:start(1)).
+register(two, node2:start(5,one)).
+register(three, node2:start(10,one)).
+register(four, node2:start(20,one)).
+
+one ! probe.
+
+test:add(3, "msg", one). 
+test:add(7, "msg", one). 
+test:add(14, "msg", one). 
+test:add(22, "msg", one). 
+
+one ! state.
+
+register(five, node2:start(4,one)).
+
+one ! state.
+
+----- output of split ----
+1> c(node2).
+{ok,node2}
+2> register(one, node2:start(1)).
+true
+3> register(two, node2:start(5,one)).
+true
+4> register(three, node2:start(10,one)).
+true
+5> register(four, node2:start(20,one)). 
+true
+6> one ! probe.
+ID : 1
+probe
+ID : 5
+ID : 10
+ID : 20
+Elapsed Time : 212000 , Nodes : [1,5,10,20]
+7> test:add(3, "msg", one).
+Id : 1
+Id : 5
+ok
+8> test:add(7, "msg", one).
+Id : 1
+Id : 5
+Id : 10
+ok
+9> test:add(14, "msg", one).
+Id : 1
+Id : 5
+Id : 10
+Id : 20
+ok
+10> test:add(22, "msg", one).
+Id : 1
+ok
+11> one ! state.
+Id: 1, Predecessor: {20,<0.93.0>}, Successor: {5,<0.89.0>}, Store: [{22,[109,115,103]}]
+state
+12> two ! state.
+Id: 5, Predecessor: {1,<0.87.0>}, Successor: {10,<0.91.0>}, Store: [{3,[109,115,103]}]
+state
+13> three ! state.
+Id: 10, Predecessor: {5,<0.89.0>}, Successor: {20,<0.93.0>}, Store: [{7,[109,115,103]}]
+state
+14> four ! state. 
+Id: 20, Predecessor: {10,<0.91.0>}, Successor: {1,one}, Store: [{14,[109,115,103]}]
+state
+15> register(five, node2:start(4,one)).
+true
+16> five ! state.
+abdullah@n151-p102 chordy-code % erl
+Erlang/OTP 24 [erts-12.0.3] [source] [64-bit] [smp:8:8] [ds:8:8:10] [async-threads:1] [jit] [dtrace]
+
+Eshell V12.0.3  (abort with ^G)
+1> c(node2).
+{ok,node2}
+2> register(one, node2:start(1)).
+true
+Rest : [], Keep : []
+3> register(two, node2:start(5,one)).
+true
+Rest : [], Keep : []
+Rest : [], Keep : []
+4> register(three, node2:start(10,one)).
+true
+Rest : [], Keep : []
+Rest : [], Keep : []
+5> register(four, node2:start(20,one)).
+true
+Rest : [], Keep : []
+Rest : [], Keep : []
+6> one ! probe.
+ID : 1
+probe
+ID : 5
+ID : 10
+ID : 20
+Elapsed Time : 197000 , Nodes : [1,5,10,20]
+7> test:add(3, "msg", one). 
+Id : 1
+Id : 5
+ok
+8> 
+8> test:add(7, "msg", one). 
+Id : 1
+Id : 5
+Id : 10
+ok
+9> 
+9> test:add(14, "msg", one).
+Id : 1
+Id : 5
+Id : 10
+Id : 20
+ok
+10> test:add(22, "msg", one). 
+Id : 1
+ok
+11> 
+11> one ! state.
+Id: 1, Predecessor: {20,<0.93.0>}, Successor: {5,<0.89.0>}, Store: [{22,[109,115,103]}]
+state
+12> two ! state.
+Id: 5, Predecessor: {1,<0.87.0>}, Successor: {10,<0.91.0>}, Store: [{3,[109,115,103]}]
+state
+13> register(five, node2:start(4,one)).
+true
+Rest : [{3,[109,115,103]}], Keep : []
+Rest : [], Keep : [{3,[109,115,103]}]
+14> five ! state.
+Id: 4, Predecessor: {1,<0.87.0>}, Successor: {5,<0.89.0>}, Store: [{3,[109,115,103]}]
+state
+
+
+register(one, node3:start(1)).
+register(two, node3:start(5,one)).
+register(three, node3:start(10,one)).
+register(four, node3:start(20,one)).
+
+one ! probe.
+
+test:add(3, "msg", one). 
+test:add(7, "msg", one). 
+test:add(14, "msg", one). 
+test:add(22, "msg", one). 
+
+one ! state.
+
+register(five, node3:start(4,one)).
+
+one ! state.
