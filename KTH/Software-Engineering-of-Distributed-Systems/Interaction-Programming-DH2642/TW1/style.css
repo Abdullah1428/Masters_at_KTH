@@ -1,0 +1,164 @@
+body {
+  margin: 0 auto;
+  max-width: 100%;
+  font-family: 'Georgia', 'Arial', sans-serif;
+  line-height: 1.5;
+  color: #333;
+}
+.searchResult {
+  margin-top: 50;
+  text-align: center;
+  display: inline-block;
+  width: 400px;
+  vertical-align: top;
+  cursor: pointer;
+}
+
+/* detailsView style */
+.detailsView {
+  width: 80%;
+  background: #eee;
+  padding: 5px;
+  border-left: 5px solid #69c;
+}
+
+.title {
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.productinfo {
+  margin: 5px;
+  display: flex;
+  flex-direction: row;
+}
+
+.productinfo img {
+  margin-right: 3em;
+  width: 200px;
+}
+
+.pricing {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+}
+
+.ingredients {
+  margin: 5px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.recipe {
+  margin: 5px;
+  display: flex;
+  flex-direction: column;
+}
+
+a {
+  color: inherit;
+  border-radius: 5px;
+  font-size: 0.7em;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-decoration: none;
+
+  padding: 10px;
+  margin: 5px;
+
+  border-radius: 5px;
+}
+
+button {
+  /* remove default styling */
+  background: none;
+  color: inherit;
+  border: none;
+  padding: 0;
+  font: inherit;
+
+  /* apply nice styling */
+  font-size: 0.7em;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-decoration: none;
+
+  padding: 10px;
+  margin: 5px;
+  background-color: #69c;
+  border-radius: 5px;
+
+  cursor: pointer;
+}
+
+/* summaryView style */
+.summaryView {
+  margin: 10px;
+  padding: 10px;
+}
+
+.table {
+  border-collapse: collapse;
+  margin: 10px;
+  margin-left: 0px; /* Align with heading */
+  padding: 10px;
+  min-width: 450px;
+  text-align: left;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+}
+
+.table thead {
+  text-decoration: underline;
+  background-color: #69c;
+}
+
+.table tr {
+  border-bottom: 1px solid #dddddd;
+}
+
+.table tr:last-of-type {
+  border-bottom: 2px solid #69c;
+}
+
+.table td,
+.table th {
+  padding: 10px;
+}
+
+/* sidebarView style */
+.sidebar {
+  width: 30%;
+}
+
+/* Common */
+h4 {
+  text-transform: uppercase;
+  text-decoration: underline;
+}
+
+.debug {
+  border-left: 2px solid #69c;
+}
+
+@media (min-width: 501px) {
+  /* Chrome doesn't size below 500px so this is the limit to test */
+  .flexParent {
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+  }
+
+  .sidebar {
+    width: 30%;
+  }
+
+  .mainContent {
+    max-width: 70%;
+  }
+}
+
+.hidden {
+  display: none;
+}

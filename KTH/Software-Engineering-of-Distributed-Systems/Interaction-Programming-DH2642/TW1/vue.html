@@ -1,0 +1,131 @@
+<html>
+
+<head>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="js/views/summaryView.js" type="text/jsx"></script>
+  <script src="js/views/sidebarView.js" type="text/jsx"></script>
+  <script src="js/views/searchView.js" type="text/jsx"></script>
+  <script src="js/app.js" type="text/jsx"></script>
+  <script src="vuejs/sidebarPresenter.js" type="text/jsx"></script>
+  <script src="vuejs/summaryPresenter.js" type="text/jsx"></script>
+  <script src="js/DinnerModel.js"></script>
+  <!-- Week 2 -->
+  <script src="js/apiConfig.js"></script>
+  <script src="js/dishSource.js"></script>
+  <script src="js/views/promiseNoData.js" type="text/jsx"></script>
+  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <script>
+    // Babel generates calls to React.createElement by default, so we redefine that:
+    const React = { createElement: Vue.h };
+  </script>
+</head>
+
+<body>
+  <div id="app"></div>
+</body>
+
+<script type="text/jsx">
+
+/*
+  const SearchTest={
+    data(){
+      return { 
+        promise:null,
+        data:null, 
+        error:null 
+      };
+    },
+    created(){
+	    this.promise= DishSource.searchDishes({type:"main course", query:"pasta"});
+	    this.promise.then(dt => this.data = dt )
+        .catch(err => this.error = err);
+    },    
+    render(){  return  promiseNoData(this.promise,this.data,this.error) || <SearchResultsView searchResults={this.data} dishChosen={id => console.log("The user chose dish ", id) } /> ;}
+  }
+  
+
+  Vue.render(<SearchTest />, document.getElementById("app"))
+  */
+
+
+  
+  const myModel= new DinnerModel(3);
+  const TopLevelModel = {  
+    data() { return { model: myModel}; }, 
+    render() { return <App model={this.model} />; }
+  };
+  Promise.all(
+    [
+      DishSource.getDishDetails(523145), 
+      DishSource.getDishDetails(787321),
+      DishSource.getDishDetails(452179)
+    ]
+  ).then(function(values) 
+    { 
+      values.map(d => myModel.addToMenu(d));
+      Vue.render(<TopLevelModel />, document.getElementById("app"));
+    }
+  );
+
+  
+  
+  /*
+  DishSource.searchDishes({query:"pizza"}).then(results=>
+    Vue.render(
+      <SearchResultsView 
+      searchResults={results} 
+    />,
+    document.getElementById("app"))
+  );
+  */
+  
+
+  /*
+  const TopLevelModel= {  
+    data() { return { model: new DinnerModel()}; }, 
+    render() { return <App model={this.model} />; }
+  };
+  Vue.render(<TopLevelModel />, document.getElementById("app"));
+  */
+
+  /*
+  const myModel= new DinnerModel();
+  Vue.render(<App model={myModel} />, document.getElementById("app"))
+
+  const VueSidebarLocalState= {  
+    data () { return {number:2}; }, 
+    render () {  
+      return (
+        <SidebarView 
+          guests={this.number} 
+          setGuests={num => this.number = num}
+        />
+      )
+    }
+  };
+  */
+
+  //Vue.render(<VueSidebarLocalState />, document.getElementById("app"))
+
+  /*
+  Vue.render(  
+    <SidebarView 
+      guests={3} 
+      setGuests={num => console.log("the user wants a dinner for "+ num + " guests")}
+    />, 
+    document.getElementById("app")
+  )
+  */
+
+  /*
+  Vue.render(
+    <SearchFormView options={["starter", "main course", "dessert"]} />, 
+    document.getElementById("app")
+  ); 
+  */
+
+</script>
+
+</html>

@@ -1,0 +1,239 @@
+<html>
+
+<head>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+  <script src="js/views/summaryView.js" type="text/jsx"></script>
+  <script src="js/views/sidebarView.js" type="text/jsx"></script>
+  <!-- Week 2 -->
+  <script src="js/apiConfig.js"></script>
+  <script src="js/dishSource.js"></script>
+  <script src="js/views/detailsView.js" type="text/jsx"></script>
+  <script src="js/DinnerModel.js"></script>
+  <script src="js/views/promiseNoData.js" type="text/jsx"></script>
+  <script src="js/views/searchView.js" type="text/jsx"></script>
+  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <!-- Week 3 -->
+  <!-- <script>const myModel = new DinnerModel();</script> -->
+  <script src="reactjs/sidebarPresenter.js" type="text/jsx"></script>
+  <script src="reactjs/summaryPresenter.js" type="text/jsx"></script>
+  <script src="reactjs/searchPresenter.js" type="text/jsx"></script>
+  <script src="reactjs/detailsPresenter.js" type="text/jsx"></script>
+  <script src="reactjs/showPresenter.js" type="text/jsx"></script>
+  <script src="reactjs/hooks/useModelProperty.js"></script>
+  <script src="reactjs/hooks/usePromise.js"></script>
+  <script src="js/app.js" type="text/jsx"></script>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.2.5/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.2.5/firebase-database.js"></script>
+  <script src="js/firebaseConfig.js"></script>
+  <script src="js/firebaseModel.js"></script>
+  <!-- <script src="lodash.js"></script> -->
+</head>
+
+<body>
+  <div id="app"></div>
+</body>
+
+<script type="text/jsx">
+
+  // testing loadash for throttle
+  /*
+  var throt_fun = _.throttle(function() {
+    console.log('Function throttled after 1000ms!');
+  }, 1000);
+  
+  // Defining loop
+  var loop = function() {
+    setTimeout(loop, 5)
+    throt_fun();
+  };
+  
+  // Calling loop to start
+  loop();
+  */
+
+  // Week 3 Testing
+
+  
+  const myModel=new DinnerModel();
+  persistModel(myModel); // firebase 
+  ReactDOM.render(<App model={myModel} />,document.getElementById("app"))
+  
+
+  // Week 3 Testing
+  /*
+  const myModel = new DinnerModel(3); 
+  Promise.all(
+    [DishSource.getDishDetails(523145), 
+    DishSource.getDishDetails(787321),
+    DishSource.getDishDetails(452179)]
+  ).then(function(values){ 
+    values.map(d => myModel.addToMenu(d));
+    ReactDOM.render(<App model={myModel}/>, document.getElementById("app"));
+  });
+  */
+  
+
+  /*
+  const searchPromise = DishSource.searchDishes({type:"main course", query:"pasta" });
+  function SearchTest(){
+    const [data, setData] = React.useState(null);
+    const [error, setError] = React.useState(null);
+    React.useEffect(function(){ 
+      searchPromise.then(dt => setData(dt))
+          .catch(er=> setError(er))
+    }, []);
+    return promiseNoData(searchPromise, data, error) || <SearchResultsView searchResults={data} dishChosen={id=> console.log("The user chose dish ", id) } />
+  }     
+
+  const detailsPromise = DishSource.getDishDetails(523145);
+  function DetailsTest(){
+    const [data, setData] = React.useState(null);
+    const [error, setError] = React.useState(null);
+    React.useEffect(function(){ 
+      detailsPromise.then(dt => setData(dt))
+        .catch(er=> setError(er))
+    }, []);
+    return promiseNoData(searchPromise, data, error) || <DetailsView dish={data} people={4} isDishInMenu={true} dishAdded={() => console.log("User wants to add this dish! ", data)}  />
+  } 
+
+  ReactDOM.render(<div><SearchTest/><DetailsTest/></div>, document.getElementById("app"))
+  
+  */
+
+  /*
+  function RenderTest(){ console.log("React sub-component render test"); return false; }
+  function ReactTopLevelNumber(){
+    const [num, setNumber]= React.useState(2); 
+    return (
+      <div>
+         <SidebarView guests={num} setGuests={x => setNumber(x)} />
+         <SummaryView persons={num} />
+         <RenderTest />
+      </div> 
+    );
+  }
+  ReactDOM.render(<ReactTopLevelNumber />, document.getElementById("app"))
+  */
+
+
+  /*
+  Promise.all (
+    [DishSource.getDishDetails(523145), 
+    DishSource.getDishDetails(787321),
+    DishSource.getDishDetails(452179)]
+  ).then(values => ReactDOM.render (
+    <SummaryView 
+    persons={5} 
+    ingredients={getIngredients(values)} 
+    />, 
+    document.getElementById("app")
+  ))
+  */
+  
+  /*
+  DishSource.getDishDetails(547775).then(details=>
+    ReactDOM.render(
+      <DetailsView 
+        dish={details} 
+        people={3} 
+        isDishInMenu={false}
+        dishAdded={() => console.log("User wants to add this dish! ", details)} 
+      />, 
+      document.getElementById("app")
+    )
+  )
+  */
+  
+
+
+  /*
+  Promise.all(
+     [DishSource.getDishDetails(523145), 
+     DishSource.getDishDetails(787321),
+     DishSource.getDishDetails(452179)]
+  ).then(values => 
+    ReactDOM.render(
+      <SidebarView 
+        guests={5} 
+        dishes={values}
+        setGuests={(num) => console.log('Guest :  ',num)}
+        removeDish={id => console.log("user wants to remove dish with ID : ",id)}
+        dishChoice={id => console.log("user wants details of dish with ID ", id)}
+      />,    
+      document.getElementById("app")
+    )
+  )
+  */
+  
+  /*
+  DishSource.searchDishes({query:"pizza"})
+  .then
+  (results=>
+    ReactDOM.render( 
+      <SearchResultsView searchResults={results} dishChosen={id=> console.log("The user chose dish ", id) } />,
+      document.getElementById("app")
+    )
+  );
+  */
+  
+  
+
+  /*
+  function RenderTest(){ console.log("React sub-component render test"); return false; }
+  function ReactTopLevelNumber(){
+    const [num, setNumber]= React.useState(2); 
+    return (
+      <div>
+         <SidebarView guests={num} setGuests={x => setNumber(x)} />
+         <SummaryView persons={num} />
+         <RenderTest />
+      </div> 
+    );
+  }
+  ReactDOM.render(<ReactTopLevelNumber />, document.getElementById("app"))
+  */
+
+  /*
+  function ReactSidebarLocalState(){
+    const numberState= React.useState(2);
+    const num = numberState[0];     
+    const setNumber = numberState[1];  
+    const [num, setNumber]= React.useState(2);   
+    return (
+      <SidebarView 
+        guests={num}
+        setGuests={x => setNumber(x)} />
+    )
+  }
+  ReactDOM.render(<ReactSidebarLocalState />,document.getElementById("app"));
+  */
+
+  /*
+  ReactDOM.render(
+    <SidebarView 
+      guests={3} 
+      setGuests={num => console.log("the user wants a dinner for "+ num + " guests")}
+    />, 
+    document.getElementById("app")
+  )
+  */
+
+  /*
+  ReactDOM.render(
+    <SearchFormView 
+      options={["starter", "main course", "dessert"]} 
+      onSearch={() => console.log("User wants to search!")}             
+      onText={txt => console.log("User typed: ", txt)}	
+      onDishType={dishType => console.log("User chose dish type: ", dishType)}
+    />, 
+    document.getElementById("app")
+  );
+  */
+
+</script>
+
+</html>
